@@ -1,0 +1,80 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [vector]
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String?
+  passwordHash String?
+  authProvider String        @default("local") // "local" or "corsair"
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  emails       Email[]
+  digestCaches DigestCache[]
+  followUps    FollowUp[]
+}
+
+model Email {
+  id            String                       @id @default(cuid())
+  userId        String
+  user          User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  corsairId     String                       @unique
+  subject       String
+  body          String                       @db.Text
+  from          String
+  to            String
+  date          DateTime
+  priorityLevel String?
+  embedding     Unsupported("vector(1536)")?
+  createdAt     DateTime                     @default(now())
+  updatedAt     DateTime                     @updatedAt
+  followUps     FollowUp[]
+
+  @@index([userId])
+}
+
+model DigestCache {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime
+  summary   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, date])
+}
+
+model FollowUp {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailId     String?
+  email       Email?   @relation(fields: [emailId], references: [id], onDelete: SetNull)
+  action      String
+  scheduledAt DateTime
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([emailId])
+}
+
+model WebhookLog {
+  id         String   @id @default(cuid())
+  provider   String
+  eventType  String
+  payload    Json
+  processed  Boolean  @default(false)
+  receivedAt DateTime @default(now())
+
+  @@index([processed])
+}
