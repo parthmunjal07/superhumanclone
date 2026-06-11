@@ -42,6 +42,7 @@ model Email {
   from          String
   to            String
   date          DateTime
+  isRead        Boolean                      @default(false)
   priorityLevel String?
   embedding     Unsupported("vector(1536)")?
   createdAt     DateTime                     @default(now())
