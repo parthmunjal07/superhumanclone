@@ -17,7 +17,7 @@ export async function GET(req: Request) {
 
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
-      select: { id: true, email: true, name: true, authProvider: true },
+      select: { id: true, email: true, name: true, authProvider: true, role: true, teamId: true },
     });
 
     if (!user) {
@@ -25,7 +25,12 @@ export async function GET(req: Request) {
     }
 
     // Issue a new short-lived access token
-    const accessToken = generateAccessToken({ userId: user.id, email: user.email });
+    const accessToken = generateAccessToken({ 
+      userId: user.id, 
+      email: user.email,
+      role: user.role,
+      teamId: user.teamId
+    });
 
     return NextResponse.json({
       user,

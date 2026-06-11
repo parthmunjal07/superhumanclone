@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken, getRefreshTokenCookie } from '@/lib/auth';
 
+import { EmailService } from '@/services/EmailService';
+
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
@@ -9,9 +11,6 @@ export async function GET(req: Request) {
     const limitParam = url.searchParams.get('limit');
     const limit = limitParam ? parseInt(limitParam, 10) : 20;
 
-    // Optional: Protect route (in a real app, you'd extract the Access Token from headers
-    // but since we're Server Side and our access token is in memory, we verify the refresh token cookie 
-    // or rely on a standard session context).
     const refreshToken = await getRefreshTokenCookie();
     if (!refreshToken) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -23,30 +22,7 @@ export async function GET(req: Request) {
 
     const userId = payload.userId;
 
-    const emails = await prisma.email.findMany({
-      where: { userId },
-      take: limit + 1, // Fetch one extra to determine if there's a next page
-      cursor: cursor ? { id: cursor } : undefined,
-      orderBy: {
-        date: 'desc',
-      },
-      select: {
-        id: true,
-        subject: true,
-        body: true,
-        from: true,
-        to: true,
-        date: true,
-        priorityLevel: true,
-        isRead: true,
-      }
-    });
-
-    let nextCursor: string | null = null;
-    if (emails.length > limit) {
-      const nextItem = emails.pop(); // Remove the extra item
-      nextCursor = nextItem!.id;
-    }
+    const { emails, nextCursor } = await EmailService.getEmails(userId, limit, cursor);
 
     return NextResponse.json({
       emails,

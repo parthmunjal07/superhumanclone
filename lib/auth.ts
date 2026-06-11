@@ -11,6 +11,8 @@ const REFRESH_COOKIE_NAME = 'corsair_refresh_token';
 export type TokenPayload = {
   userId: string;
   email: string;
+  role: string;
+  teamId?: string | null;
 };
 
 // ----------------------------------------

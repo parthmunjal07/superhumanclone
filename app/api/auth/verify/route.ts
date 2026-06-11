@@ -33,7 +33,12 @@ export async function GET(req: Request) {
     await prisma.verificationToken.delete({ where: { id: verificationToken.id } });
 
     // Log the user in
-    const tokenPayload = { userId: user.id, email: user.email };
+    const tokenPayload = { 
+      userId: user.id, 
+      email: user.email,
+      role: user.role,
+      teamId: user.teamId
+    };
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
 

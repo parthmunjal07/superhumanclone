@@ -27,14 +27,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    const tokenPayload = { userId: user.id, email: user.email };
+    const tokenPayload = { 
+      userId: user.id, 
+      email: user.email,
+      role: user.role,
+      teamId: user.teamId
+    };
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
 
     await setRefreshTokenCookie(refreshToken);
 
     return NextResponse.json({
-      user: { id: user.id, email: user.email, name: user.name },
+      user: { 
+        id: user.id, 
+        email: user.email, 
+        name: user.name,
+        role: user.role,
+        teamId: user.teamId
+      },
       accessToken,
     });
 

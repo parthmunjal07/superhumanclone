@@ -12,21 +12,39 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log('Seeding mock emails...');
 
-  // Ensure there is at least one user
-  let user = await prisma.user.findFirst();
-  
+  const bcrypt = await import('bcrypt');
+  const passwordHash = await bcrypt.hash('password123', 10);
+
+  // Ensure there is at least one regular user
+  let user = await prisma.user.findFirst({ where: { email: 'test@corsair.dev' }});
   if (!user) {
     user = await prisma.user.create({
       data: {
         email: 'test@corsair.dev',
         name: 'Test User',
         authProvider: 'local',
+        passwordHash,
+        role: 'FREE',
         emailVerifiedAt: new Date(),
       }
     });
-    console.log('Created test user:', user.email);
-  } else {
-    console.log('Using existing user:', user.email);
+    console.log('Created test user:', user.email, 'with password: password123');
+  }
+
+  // Ensure there is a super admin
+  let admin = await prisma.user.findFirst({ where: { email: 'admin@corsair.dev' }});
+  if (!admin) {
+    admin = await prisma.user.create({
+      data: {
+        email: 'admin@corsair.dev',
+        name: 'Super Admin',
+        authProvider: 'local',
+        passwordHash,
+        role: 'SUPER_ADMIN',
+        emailVerifiedAt: new Date(),
+      }
+    });
+    console.log('Created super admin:', admin.email, 'with password: password123');
   }
 
   // Clear existing emails (optional, but good for clean seed)

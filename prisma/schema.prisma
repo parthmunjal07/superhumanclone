@@ -8,13 +8,36 @@ datasource db {
   extensions = [vector]
 }
 
+enum Role {
+  FREE
+  PRO
+  TEAM_MEMBER
+  TEAM_ADMIN
+  SUPER_ADMIN
+}
+
+model Team {
+  id        String   @id @default(cuid())
+  ownerId   String   @unique
+  owner     User     @relation("TeamOwner", fields: [ownerId], references: [id])
+  seats     Int      @default(1)
+  plan      String   @default("FREE")
+  members   User[]   @relation("TeamMembers")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model User {
   id              String        @id @default(cuid())
   email           String        @unique
   name            String?
   passwordHash    String?
-  authProvider    String        @default("local") // "local" or "corsair"
+  authProvider    String        @default("local") // "local" or "google"
   emailVerifiedAt DateTime?
+  role            Role          @default(FREE)
+  teamId          String?
+  team            Team?         @relation("TeamMembers", fields: [teamId], references: [id])
+  ownedTeam       Team?         @relation("TeamOwner")
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   emails          Email[]
