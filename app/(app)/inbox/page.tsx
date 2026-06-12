@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import useSWRInfinite from 'swr/infinite';
 import { useInView } from 'react-intersection-observer';
 import EmailItem from '@/components/EmailItem';
 import ReadingPane from '@/components/ReadingPane';
 import ComposeModal from '@/components/ComposeModal';
+import ShortcutOverlay from '@/components/ShortcutOverlay';
 import { Edit, Search } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -17,6 +18,8 @@ export default function InboxPage() {
   const [replyTo, setReplyTo] = useState<{ to: string; subject: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [isShortcutOverlayOpen, setIsShortcutOverlayOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Debounce search query
   useEffect(() => {
@@ -51,8 +54,8 @@ export default function InboxPage() {
     },
   });
 
-  const emails = data ? data.flatMap(page => page.emails) : [];
-  const selectedEmail = emails.find(e => e.id === selectedEmailId) || null;
+  const emails = data ? data.flatMap(page => page.emails || []) : [];
+  const selectedEmail = emails.find(e => e?.id === selectedEmailId) || null;
   
   const isLoadingInitialData = !data && !error;
   const isLoadingMore = isLoadingInitialData || (size > 0 && data && typeof data[size - 1] === "undefined");
@@ -89,24 +92,6 @@ export default function InboxPage() {
     };
   }, [mutate, debouncedSearchQuery]);
 
-  // Global keyboard shortcuts
-  useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || (e.target as HTMLElement).isContentEditable) {
-        return;
-      }
-      
-      if (e.key === 'c') {
-        e.preventDefault();
-        setReplyTo(null);
-        setIsComposeOpen(true);
-      }
-    };
-
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, []);
-
   const removeEmailOptimistically = async (id: string, action: 'archive' | 'delete') => {
     if (selectedEmailId === id) setSelectedEmailId(null);
     
@@ -127,16 +112,16 @@ export default function InboxPage() {
     }
   };
 
-  const handleArchive = (id: string) => removeEmailOptimistically(id, 'archive');
-  const handleDelete = (id: string) => removeEmailOptimistically(id, 'delete');
+  const handleArchive = useCallback((id: string) => removeEmailOptimistically(id, 'archive'), [selectedEmailId, mutate]);
+  const handleDelete = useCallback((id: string) => removeEmailOptimistically(id, 'delete'), [selectedEmailId, mutate]);
   
-  const handleReply = (id: string) => {
-    const email = emails.find(e => e.id === id);
+  const handleReply = useCallback((id: string) => {
+    const email = emails.find((e: any) => e.id === id);
     if (email) {
       setReplyTo({ to: email.from, subject: email.subject });
       setIsComposeOpen(true);
     }
-  };
+  }, [emails]);
 
   const handleSend = async (payload: { to: string; subject: string; body: string }) => {
     await fetch('/api/emails/send', {
@@ -145,6 +130,42 @@ export default function InboxPage() {
       body: JSON.stringify(payload),
     });
   };
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || (e.target as HTMLElement).isContentEditable) {
+        return;
+      }
+      
+      switch (e.key) {
+        case 'c':
+          e.preventDefault();
+          setReplyTo(null);
+          setIsComposeOpen(true);
+          break;
+        case 'e':
+          e.preventDefault();
+          if (selectedEmailId) handleArchive(selectedEmailId);
+          break;
+        case 'r':
+          e.preventDefault();
+          if (selectedEmailId) handleReply(selectedEmailId);
+          break;
+        case '/':
+          e.preventDefault();
+          searchInputRef.current?.focus();
+          break;
+        case '?':
+          e.preventDefault();
+          setIsShortcutOverlayOpen((prev) => !prev);
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [selectedEmailId, handleArchive, handleReply]);
 
   return (
     <>
@@ -211,6 +232,10 @@ export default function InboxPage() {
           onSend={handleSend}
           replyTo={replyTo}
         />
+      )}
+
+      {isShortcutOverlayOpen && (
+        <ShortcutOverlay onClose={() => setIsShortcutOverlayOpen(false)} />
       )}
     </>
   );

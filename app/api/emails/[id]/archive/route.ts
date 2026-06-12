@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { EmailService } from '@/services/EmailService';
+import { EmailService } from '@/services/email.service';
 import { verifyToken, getRefreshTokenCookie } from '@/lib/auth';
 
 export async function POST(

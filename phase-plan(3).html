@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase Plan — Superhuman Clone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #1A1A1A;
+    --surface:   #222222;
+    --card:      #2A2A2A;
+    --border:    #333333;
+    --text:      #F0F0F0;
+    --muted:     #888888;
+    --hint:      #555555;
+
+    --done-bg:      #1A3B2E;
+    --done-text:    #3ECFA4;
+    --done-border:  #2A5A44;
+
+    --partial-bg:     #3B2A10;
+    --partial-text:   #D48B3A;
+    --partial-border: #5A4018;
+
+    --todo-bg:     #2A2A2A;
+    --todo-text:   #888888;
+    --todo-border: #404040;
+
+    --warn-bg:    rgba(232,89,60,.08);
+    --warn-border:rgba(232,89,60,.3);
+    --warn-text:  #E8593C;
+
+    --tag-fe:     rgba(123,110,246,.15); --tag-fe-t:    #9D93F8;
+    --tag-be:     rgba(62,207,164,.12);  --tag-be-t:    #3ECFA4;
+    --tag-int:    rgba(232,89,60,.13);   --tag-int-t:   #F07A61;
+    --tag-ai:     rgba(78,168,222,.13);  --tag-ai-t:    #6BBEE8;
+    --tag-infra:  rgba(245,166,35,.12);  --tag-infra-t: #F5C060;
+    --tag-sec:    rgba(232,89,60,.18);   --tag-sec-t:   #F07A61;
+    --tag-arch:   rgba(160,120,255,.15); --tag-arch-t:  #B89EFF;
+    --tag-test:   rgba(62,207,164,.10);  --tag-test-t:  #5ED4B0;
+    --tag-dx:     rgba(245,166,35,.10);  --tag-dx-t:    #D4A040;
+
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Inter', system-ui, sans-serif;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+    padding: 32px 24px 80px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  /* ── Page header ── */
+  .page-header { margin-bottom: 24px; }
+  .page-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .page-title {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .page-desc { font-size: 13px; color: var(--muted); }
+
+  /* ── Stack chips ── */
+  .stack-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 28px;
+  }
+  .stack-chip {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: var(--surface);
+  }
+
+  /* ── Phase block ── */
+  .phase {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .phase.phase-zero { border-color: rgba(232,89,60,.35); }
+
+  .phase-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    cursor: pointer;
+    user-select: none;
+    gap: 12px;
+  }
+  .phase-header:hover { background: rgba(255,255,255,.02); }
+
+  .phase-title-text {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+  }
+  .phase-zero .phase-title-text { color: #F07A61; }
+
+  .phase-subtitle-text {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 400;
+    margin-left: 8px;
+  }
+
+  .phase-badges {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .count-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .count-done    { background: var(--done-bg);    color: var(--done-text);    border: 1px solid var(--done-border); }
+  .count-partial { background: var(--partial-bg); color: var(--partial-text); border: 1px solid var(--partial-border); }
+  .count-todo    { background: var(--todo-bg);    color: var(--todo-text);    border: 1px solid var(--todo-border); }
+
+  .chevron { color: var(--muted); font-size: 13px; transition: transform 0.2s; flex-shrink: 0; }
+  .phase.collapsed .chevron { transform: rotate(180deg); }
+
+  /* ── Task list ── */
+  .task-list { border-top: 1px solid var(--border); }
+  .phase.collapsed .task-list { display: none; }
+
+  /* group separator inside a phase */
+  .task-group-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--hint);
+    padding: 10px 20px 6px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,.015);
+  }
+
+  .task-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 13px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .task-item:last-child { border-bottom: none; }
+  .task-item.critical { background: rgba(232,89,60,.04); }
+
+  .status-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 2px;
+    min-width: 68px;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity .15s;
+  }
+  .status-badge:hover { opacity: .8; }
+  .status-badge[title]::after { content: ''; }
+  .status-done    { background: var(--done-bg);    color: var(--done-text);    border: 1px solid var(--done-border); }
+  .status-partial { background: var(--partial-bg); color: var(--partial-text); border: 1px solid var(--partial-border); }
+  .status-todo    { background: var(--todo-bg);    color: var(--todo-text);    border: 1px solid var(--todo-border); }
+
+  .task-body { flex: 1; min-width: 0; }
+  .task-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+  .critical-pill {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(232,89,60,.18);
+    color: #F07A61;
+    border: 1px solid rgba(232,89,60,.3);
+    text-transform: uppercase;
+  }
+  .task-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .task-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 7px;
+  }
+  .tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .tag-fe    { background: var(--tag-fe);    color: var(--tag-fe-t); }
+  .tag-be    { background: var(--tag-be);    color: var(--tag-be-t); }
+  .tag-int   { background: var(--tag-int);   color: var(--tag-int-t); }
+  .tag-ai    { background: var(--tag-ai);    color: var(--tag-ai-t); }
+  .tag-infra { background: var(--tag-infra); color: var(--tag-infra-t); }
+  .tag-sec   { background: var(--tag-sec);   color: var(--tag-sec-t); }
+  .tag-arch  { background: var(--tag-arch);  color: var(--tag-arch-t); }
+  .tag-test  { background: var(--tag-test);  color: var(--tag-test-t); }
+  .tag-dx    { background: var(--tag-dx);    color: var(--tag-dx-t); }
+
+  code {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    color: #A8A8C0;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    margin-top: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .legend-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--hint);
+    text-transform: uppercase;
+    margin-right: 4px;
+  }
+
+  @media (max-width: 600px) {
+    body { padding: 20px 14px 60px; }
+    .phase-subtitle-text { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="page-eyebrow">Hackathon build plan · 8 days</div>
+  <div class="page-title">Superhuman Clone</div>
+  <div class="page-desc">Next.js + Postgres + Corsair — click any status badge to cycle it. Click a phase header to collapse.</div>
+</div>
+
+<div class="stack-row">
+  <span class="stack-chip">Next.js 14</span>
+  <span class="stack-chip">TypeScript</span>
+  <span class="stack-chip">PostgreSQL</span>
+  <span class="stack-chip">pgvector</span>
+  <span class="stack-chip">Prisma</span>
+  <span class="stack-chip">Corsair</span>
+  <span class="stack-chip">Claude Sonnet</span>
+  <span class="stack-chip">Claude Haiku</span>
+  <span class="stack-chip">Helmet</span>
+  <span class="stack-chip">Ngrok</span>
+  <span class="stack-chip">Vercel</span>
+</div>
+
+<!-- ══════════════════════════════════════
+     PHASE 0 — Standards & Guardrails
+═══════════════════════════════════════ -->
+<div class="phase phase-zero" id="phase0">
+  <div class="phase-header" onclick="toggle('phase0')">
+    <span class="phase-title-text">Phase 0 — Standards &amp; guardrails <span class="phase-subtitle-text">set once, enforced always</span></span>
+    <div class="phase-badges" id="badges-phase0">
+      <span class="count-badge count-todo">15 todo</span>
+    </div>
+    <span class="chevron">▲</span>
+  </div>
+  <div class="task-list">
+
+    <div class="task-group-label">Security</div>
+
+    <div class="task-item critical">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Move access token out of localStorage <span class="critical-pill">critical</span></div>
+        <div class="task-desc">localStorage is readable by any script on the page — a single XSS hole leaks every token. Store the access token in memory (React context / Zustand) and the refresh token in an <code>httpOnly; Secure; SameSite=Strict</code> cookie. On page load, hit <code>/api/auth/refresh</code> to rehydrate silently.</div>
+        <div class="task-tags"><span class="tag tag-sec">security</span><span class="tag tag-fe">frontend</span><span class="tag tag-be">backend</span></div>
+      </div>
+    </div>
+
+    <div class="task-item critical">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Helmet + CSRF protection <span class="critical-pill">critical</span></div>
+        <div class="task-desc">Add <code>helmet()</code> middleware to set secure HTTP headers (CSP, HSTS, X-Frame-Options, etc.). Add CSRF tokens on all state-mutating endpoints using <code>csurf</code> or the Double Submit Cookie pattern. Validate <code>Origin</code> / <code>Referer</code> headers as a secondary check.</div>
+        <div class="task-tags"><span class="tag tag-sec">security</span><span class="tag tag-be">backend</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Rate limiting on auth endpoints</div>
+        <div class="task-desc">Use <code>express-rate-limit</code> on <code>/api/auth/login</code>, <code>/api/auth/signup</code>, and <code>/api/auth/refresh</code>. Recommended limits: 10 req/15 min per IP on login/signup, 30 req/15 min on refresh. Return <code>429</code> with a <code>Retry-After</code> header.</div>
+        <div class="task-tags"><span class="tag tag-sec">security</span><span class="tag tag-be">backend</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Request body size limits</div>
+        <div class="task-desc">Set <code>express.json({ limit: '50kb' })</code> globally. Override to <code>'5mb'</code> only on the compose/send endpoint that accepts attachments. Prevents memory exhaustion from oversized payloads.</div>
+        <div class="task-tags"><span class="tag tag-sec">security</span><span class="tag tag-be">backend</span></div>
+      </div>
+    </div>
+
+    <div class="task-group-label">Architecture</div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Service layer — separate controllers from business logic</div>
+        <div class="task-desc">Controllers should only parse the request and call a service. Services own DB queries, validation, and business logic. Example: <code>EmailController.send()</code> calls <code>EmailService.send()</code> which calls <code>CorsairClient.sendEmail()</code>. Never write a Prisma query inside a route handler.</div>
+        <div class="task-tags"><span class="tag tag-arch">architecture</span><span class="tag tag-be">backend</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Consistent JSON response shape</div>
+        <div class="task-desc">Every endpoint returns the same envelope: <code>{"success": true, "data": {...}}</code> or <code>{"success": false, "error": {"code": "NOT_FOUND", "message": "..."}}</code>. Create a <code>sendSuccess()</code> and <code>sendError()</code> helper. No one-off shapes anywhere.</div>
+        <div class="task-tags"><span class="tag tag-arch">architecture</span><span class="tag tag-be">backend</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Graceful shutdown</div>
+        <div class="task-desc">Listen for <code>SIGTERM</code> and <code>SIGINT</code>. On signal: stop accepting new requests, drain in-flight requests (with a 10s timeout), close Prisma connection, close Redis client, then exit with code 0. Prevents data corruption on Vercel redeploys.</div>
+        <div class="task-tags"><span class="tag tag-arch">architecture</span><span class="tag tag-be">backend</span></div>
+      </div>
+    </div>
+
+    <div class="task-group-label">Code quality</div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">ESLint on backend</div>
+        <div class="task-desc">Add <code>eslint</code> + <code>@typescript-eslint/eslint-plugin</code> to the backend. Rules to enforce: <code>no-unused-vars</code>, <code>no-unused-expressions</code>, <code>@typescript-eslint/no-explicit-any</code>, <code>no-console</code> (warn). Add <code>lint</code> script to CI and to the pre-commit hook.</div>
+        <div class="task-tags"><span class="tag tag-dx">dx</span><span class="tag tag-be">backend</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Remove dead code + unused schemas</div>
+        <div class="task-desc">Audit all Zod schemas, Prisma models, service functions, and route handlers. Delete anything not referenced. Run <code>ts-prune</code> to surface unused exports. Dead code is a future maintenance trap and confuses new contributors.</div>
+        <div class="task-tags"><span class="tag tag-dx">dx</span><span class="tag tag-be">backend</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Tests — auth and critical API paths</div>
+        <div class="task-desc">Write integration tests for: signup, login, token refresh, protected route rejection, send email, webhook idempotency. Use <code>vitest</code> + <code>supertest</code>. Not full coverage — just the paths that, if broken, take down the whole product.</div>
+        <div class="task-tags"><span class="tag tag-test">tests</span><span class="tag tag-be">backend</span></div>
+      </div>
+    </div>
+
+    <div class="task-group-label">RBAC — roles &amp; permissions</div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Define roles + Prisma schema</div>
+        <div class="task-desc">Add a <code>role</code> enum to the User model: <code>FREE</code>, <code>PRO</code>, <code>TEAM_MEMBER</code>, <code>TEAM_ADMIN</code>, <code>SUPER_ADMIN</code>. Add a <code>Team</code> model with <code>ownerId</code>, <code>seats</code>, <code>plan</code>. Add <code>teamId</code> FK on User. Default all new users to <code>FREE</code> on signup.</div>
+        <div class="task-tags"><span class="tag tag-arch">architecture</span><span class="tag tag-be">backend</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Permission gate middleware</div>
+        <div class="task-desc">Create a <code>requireRole(...roles)</code> middleware that reads the user's role from the session and returns <code>403</code> if they don't have access. Apply it per route — e.g. <code>requireRole('PRO','TEAM_MEMBER','TEAM_ADMIN')</code> on <code>/api/agent</code>. Never check roles inside service functions.</div>
+        <div class="task-tags"><span class="tag tag-arch">architecture</span><span class="tag tag-be">backend</span><span class="tag tag-sec">security</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Feature flags per role — what each tier can access</div>
+        <div class="task-desc">
+          <strong style="color:var(--text);font-weight:500">FREE:</strong> inbox, compose, calendar view, basic search, 500 emails indexed, no agent, no integrations, no digest.<br>
+          <strong style="color:var(--text);font-weight:500">PRO:</strong> everything — full agent + voice, all Corsair integrations, morning digest, vector search, unlimited indexing.<br>
+          <strong style="color:var(--text);font-weight:500">TEAM_MEMBER:</strong> same as PRO, scoped to their own account.<br>
+          <strong style="color:var(--text);font-weight:500">TEAM_ADMIN:</strong> PRO + seat management, audit log, shared agent command presets.<br>
+          <strong style="color:var(--text);font-weight:500">SUPER_ADMIN:</strong> full platform — user impersonation, billing override, all data.
+        </div>
+        <div class="task-tags"><span class="tag tag-arch">architecture</span><span class="tag tag-fe">frontend</span><span class="tag tag-be">backend</span></div>
+      </div>
+    </div>
+
+    <div class="task-group-label">Pricing &amp; billing</div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Pricing tiers + Stripe integration</div>
+        <div class="task-desc">
+          Four tiers via Stripe Products + Prices:<br>
+          <strong style="color:var(--text);font-weight:500">Free — $0:</strong> 1 account, 500 emails, read-only agent, no integrations.<br>
+          <strong style="color:var(--text);font-weight:500">Pro — $25/mo:</strong> unlimited emails, full agent + voice, all integrations, digest, vector search.<br>
+          <strong style="color:var(--text);font-weight:500">Team — $20/seat/mo (min 3):</strong> Pro features + admin dashboard, audit log, shared agent presets.<br>
+          <strong style="color:var(--text);font-weight:500">Enterprise — custom:</strong> SSO, custom integrations, SLA, dedicated support.<br>
+          Store <code>stripeCustomerId</code>, <code>stripeSubscriptionId</code>, <code>plan</code>, <code>planExpiresAt</code> on the User/Team model. Use Stripe webhooks to sync subscription state — never trust the client.
+        </div>
+        <div class="task-tags"><span class="tag tag-be">backend</span><span class="tag tag-infra">infra</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Upgrade prompt + paywall UI</div>
+        <div class="task-desc">When a FREE user tries to use the agent, digest, or integrations — show an inline upgrade prompt (not a full-page redirect). Component: <code>UpgradeGate</code> wraps any feature and renders a lock overlay with a one-line reason and "Upgrade to Pro" CTA. Stripe Checkout opens in a new tab. On return, session refreshes automatically.</div>
+        <div class="task-tags"><span class="tag tag-fe">frontend</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PHASE 1 — Foundation & Auth
+═══════════════════════════════════════ -->
+<div class="phase" id="phase1">
+  <div class="phase-header" onclick="toggle('phase1')">
+    <span class="phase-title-text">Phase 1 — Foundation &amp; auth <span class="phase-subtitle-text">Day 1</span></span>
+    <div class="phase-badges" id="badges-phase1">
+      <span class="count-badge count-todo">6 todo</span>
+    </div>
+    <span class="chevron">▲</span>
+  </div>
+  <div class="task-list">
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Next.js project setup</div>
+        <div class="task-desc">App Router, TypeScript, Tailwind CSS, shadcn/ui. Folder structure: <code>/app</code>, <code>/components</code>, <code>/lib</code>, <code>/hooks</code>, <code>/services</code>. ESLint + Prettier configured from day one.</div>
+        <div class="task-tags"><span class="tag tag-infra">infra</span><span class="tag tag-fe">frontend</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Database schema</div>
+        <div class="task-desc">Prisma schema with <code>User</code>, <code>Email</code>, <code>DigestCache</code>, <code>FollowUp</code>, <code>WebhookLog</code>. Enable <code>pgvector</code> extension. No unused models — every table must map to a feature in this plan.</div>
+        <div class="task-tags"><span class="tag tag-be">backend</span><span class="tag tag-infra">infra</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Google OAuth via Corsair (secure)</div>
+        <div class="task-desc">Tokens stored correctly per Phase 0: access token in memory, refresh token in <code>httpOnly</code> cookie. <code>/api/auth/me</code> endpoint rehydrates session on load. All API routes reject without valid token.</div>
+        <div class="task-tags"><span class="tag tag-be">backend</span><span class="tag tag-int">corsair</span><span class="tag tag-sec">security</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Email verification on signup</div>
+        <div class="task-desc">On registration, send a verification email via Resend. Block access to the app until the email link is clicked. Store a <code>emailVerifiedAt</code> timestamp on the User model. Resend the verification email if expired.</div>
+        <div class="task-tags"><span class="tag tag-be">backend</span><span class="tag tag-sec">security</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">App shell + sidebar nav</div>
+        <div class="task-desc">Sidebar navigation, three-pane layout skeleton, route stubs for <code>/inbox</code>, <code>/calendar</code>, <code>/digest</code>, <code>/agent</code>, <code>/settings</code>. Auth-gated with redirect to login.</div>
+        <div class="task-tags"><span class="tag tag-fe">frontend</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Ngrok webhook tunnel <span style="font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(245,166,35,.12);color:#F5C060;border:1px solid rgba(245,166,35,.25);text-transform:uppercase;letter-spacing:.05em;margin-left:4px">local dev only</span></div>
+        <div class="task-desc">Run <code>ngrok http 3000</code> locally to expose your Next.js dev server to Corsair's webhook push. Register the generated public URL in Corsair as the webhook endpoint for Gmail and Calendar events. Re-register each dev session — the URL changes on every restart unless you have a paid Ngrok static domain. <strong style="color:var(--text);font-weight:500">Not used in production</strong> — Vercel's public URL is registered with Corsair after deploy in Phase 5.</div>
+        <div class="task-tags"><span class="tag tag-infra">infra</span><span class="tag tag-int">corsair</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PHASE 2 — Core Email
+═══════════════════════════════════════ -->
+<div class="phase" id="phase2">
+  <div class="phase-header" onclick="toggle('phase2')">
+    <span class="phase-title-text">Phase 2 — Core email features <span class="phase-subtitle-text">Days 2 – 3</span></span>
+    <div class="phase-badges" id="badges-phase2">
+      <span class="count-badge count-todo">8 todo</span>
+    </div>
+    <span class="chevron">▲</span>
+  </div>
+  <div class="task-list">
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Email list with pagination</div>
+        <div class="task-desc">Fetch inbox threads from Corsair. Render sender, subject, preview, timestamp, unread state, priority dot. Implement cursor-based pagination — never load the full inbox in one request. Load next page on scroll-to-bottom.</div>
+        <div class="task-tags"><span class="tag tag-fe">frontend</span><span class="tag tag-int">corsair</span><span class="tag tag-arch">architecture</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Reading pane</div>
+        <div class="task-desc">Full thread view. HTML body sanitised with DOMPurify before render — never trust raw email HTML. Expand/collapse per message. AI summary block at top.</div>
+        <div class="task-tags"><span class="tag tag-fe">frontend</span><span class="tag tag-sec">security</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Send / reply / archive / delete</div>
+        <div class="task-desc">Optimistic UI — apply to local state immediately, fire Corsair API in background, silent rollback on error. Each action lives in <code>EmailService</code>, not in the component. No direct Prisma calls in route handlers.</div>
+        <div class="task-tags"><span class="tag tag-fe">frontend</span><span class="tag tag-int">corsair</span><span class="tag tag-arch">architecture</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Compose modal</div>
+        <div class="task-desc">Floating modal with recipient chips, CC/BCC toggle, <code>contenteditable</code> rich text toolbar, schedule send popover, ⌘↵ to send. Body size validated before submit — reject if over limit.</div>
+        <div class="task-tags"><span class="tag tag-fe">frontend</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Realtime webhooks + SSE</div>
+        <div class="task-desc">Corsair webhook → <code>/api/webhooks/email</code> → verify HMAC signature → idempotency check (Redis, 24h TTL) → classify → embed → SSE push via <code>EventSource</code>. No polling. Duplicate deliveries handled silently.</div>
+        <div class="task-tags"><span class="tag tag-be">backend</span><span class="tag tag-int">corsair</span><span class="tag tag-sec">security</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Vector search (pgvector)</div>
+        <div class="task-desc">Embed each arriving email, store in <code>pgvector</code> column. Search queries hit local DB first — sub 1s. Falls back to Corsair search API if fewer than 5 local results (catches emails not yet embedded).</div>
+        <div class="task-tags"><span class="tag tag-be">backend</span><span class="tag tag-ai">ai</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Keyboard shortcuts</div>
+        <div class="task-desc">Global <code>keydown</code> handler — <code>e</code> archive, <code>r</code> reply, <code>c</code> compose, <code>/</code> search, <code>?</code> shortcut overlay. Shortcuts disabled when focus is inside an input or textarea.</div>
+        <div class="task-tags"><span class="tag tag-fe">frontend</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Email service — no code duplication</div>
+        <div class="task-desc">All email logic (thread fetch, send, archive, label, search) lives in <code>/services/email.service.ts</code>. Route handlers call service methods only. Zod schemas defined once in <code>/schemas/email.schema.ts</code> — shared between frontend and backend via the shared <code>/types</code> package.</div>
+        <div class="task-tags"><span class="tag tag-arch">architecture</span><span class="tag tag-be">backend</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PHASE 3 — Calendar + AI
+═══════════════════════════════════════ -->
+<div class="phase" id="phase3">
+  <div class="phase-header" onclick="toggle('phase3')">
+    <span class="phase-title-text">Phase 3 — Calendar + AI layer <span class="phase-subtitle-text">Days 4 – 5</span></span>
+    <div class="phase-badges" id="badges-phase3">
+      <span class="count-badge count-todo">5 todo</span>
+    </div>
+    <span class="chevron">▲</span>
+  </div>
+  <div class="task-list">
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Calendar week view</div>
+        <div class="task-desc">Fetch events via Corsair Calendar API. Render as week grid, colour-coded by attendee. Paginate by week — never fetch all events at once. Click to view or edit.</div>
+        <div class="task-tags"><span class="tag tag-fe">frontend</span><span class="tag tag-int">corsair</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Create / edit calendar invites</div>
+        <div class="task-desc">Form to create or edit events, add attendees, send invites. Free/busy lookup to detect conflicts. Calendar logic isolated in <code>/services/calendar.service.ts</code>.</div>
+        <div class="task-tags"><span class="tag tag-fe">frontend</span><span class="tag tag-int">corsair</span><span class="tag tag-arch">architecture</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Priority classifier</div>
+        <div class="task-desc">Claude Haiku labels each email URGENT / NORMAL / FYI on webhook arrival. Strip HTML, truncate to 300 chars, send only <code>from + subject + snippet</code>. Returns JSON only — <code>max_tokens: 50</code>. Result persisted to DB.</div>
+        <div class="task-tags"><span class="tag tag-be">backend</span><span class="tag tag-ai">ai</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Morning digest — backend</div>
+        <div class="task-desc">Claude Sonnet generates structured JSON: meetings with prep notes, action items (reply / decide / delegate), waiting-on, FYI, focus suggestion. One API call, not one per email. Cached per user per day in Redis. Cron at 6 AM.</div>
+        <div class="task-tags"><span class="tag tag-be">backend</span><span class="tag tag-ai">ai</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Morning digest — UI</div>
+        <div class="task-desc">Render briefing page from digest JSON. Meetings, action badges, waiting-on list, FYI section, focus suggestion bar. Skeleton loader while generating. "Regenerate" button busts cache.</div>
+        <div class="task-tags"><span class="tag tag-fe">frontend</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PHASE 4 — Agent Chat
+═══════════════════════════════════════ -->
+<div class="phase" id="phase4">
+  <div class="phase-header" onclick="toggle('phase4')">
+    <span class="phase-title-text">Phase 4 — Agent chat <span class="phase-subtitle-text">Day 6</span></span>
+    <div class="phase-badges" id="badges-phase4">
+      <span class="count-badge count-todo">4 todo</span>
+    </div>
+    <span class="chevron">▲</span>
+  </div>
+  <div class="task-list">
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Agent API route</div>
+        <div class="task-desc">Next.js Route Handler at <code>/api/agent</code>. Prepend system prompt (name, date, timezone, available tools). Pass full <code>messages[]</code> history on every call. Include Corsair MCP server. Stream response. Rate-limit: 30 req/min per user.</div>
+        <div class="task-tags"><span class="tag tag-be">backend</span><span class="tag tag-int">corsair</span><span class="tag tag-ai">ai</span><span class="tag tag-sec">security</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Agent chat UI</div>
+        <div class="task-desc">Chat panel docked in inbox footer. Conversation history in React state (not localStorage). Streamed response rendering. ⌘K to focus. Full-screen on <code>/agent</code> route.</div>
+        <div class="task-tags"><span class="tag tag-fe">frontend</span><span class="tag tag-sec">security</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Voice input</div>
+        <div class="task-desc"><code>useVoiceInput</code> hook — Web Speech API, four states: idle / listening / processing / error. Animated waveform. ⌘V shortcut. Gracefully hidden in Firefox/Safari. Requires HTTPS in production.</div>
+        <div class="task-tags"><span class="tag tag-fe">frontend</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Agent action log</div>
+        <div class="task-desc">Collapsible log beneath chat showing every MCP tool call — tool name, input params, outcome. Stored in React state only, not persisted. Builds demo trust.</div>
+        <div class="task-tags"><span class="tag tag-fe">frontend</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PHASE 5 — Bonus + Demo Prep
+═══════════════════════════════════════ -->
+<div class="phase" id="phase5">
+  <div class="phase-header" onclick="toggle('phase5')">
+    <span class="phase-title-text">Phase 5 — Bonus features + demo prep <span class="phase-subtitle-text">Days 7 – 8</span></span>
+    <div class="phase-badges" id="badges-phase5">
+      <span class="count-badge count-todo">7 todo</span>
+    </div>
+    <span class="chevron">▲</span>
+  </div>
+  <div class="task-list">
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Email → calendar event chip</div>
+        <div class="task-desc">Claude detects meeting requests in incoming emails. Inline one-click "Add to calendar" chip on matching cards. Logic in <code>EventDetectionService</code> — not in the component.</div>
+        <div class="task-tags"><span class="tag tag-ai">ai</span><span class="tag tag-fe">frontend</span><span class="tag tag-arch">architecture</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Meeting intelligence</div>
+        <div class="task-desc">30 min before a meeting: surface related email threads in a pre-brief card. After event ends: pre-filled follow-up draft with action items extracted by Claude. Triggered by Corsair Calendar webhook.</div>
+        <div class="task-tags"><span class="tag tag-be">backend</span><span class="tag tag-ai">ai</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Thread → decision log</div>
+        <div class="task-desc">One-click collapse of a long thread into: decisions made, open questions, action items with owner. Result rendered inline — not a modal. Clearest demo moment in the product.</div>
+        <div class="task-tags"><span class="tag tag-ai">ai</span><span class="tag tag-fe">frontend</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Linear integration</div>
+        <div class="task-desc">Claude detects bug/feature emails → one-click "Create Linear issue" chip pre-filled from thread context via Corsair Linear MCP. Demo story: email in, ticket out, no tab switching.</div>
+        <div class="task-tags"><span class="tag tag-int">corsair</span><span class="tag tag-ai">ai</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Slack integration</div>
+        <div class="task-desc">"Send to Slack" in the reading pane toolbar. Posts a formatted thread summary to a chosen channel via Corsair Slack MCP. Channel list fetched fresh — not hardcoded.</div>
+        <div class="task-tags"><span class="tag tag-int">corsair</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Tavily web search</div>
+        <div class="task-desc">Agent gains real-time web search via Corsair Tavily. "Look up this person before my meeting" works from agent chat. No extra API keys — all via Corsair.</div>
+        <div class="task-tags"><span class="tag tag-int">corsair</span><span class="tag tag-ai">ai</span></div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <span class="status-badge status-todo" title="cycle">Todo</span>
+      <div class="task-body">
+        <div class="task-name">Deploy + demo prep</div>
+        <div class="task-desc">Deploy to Vercel. Update Corsair webhook URL to production. Seed realistic inbox. Rehearse voice agent demo. Confirm shortcut overlay. Run ESLint clean. Remove any remaining <code>console.log</code> calls.</div>
+        <div class="task-tags"><span class="tag tag-infra">infra</span><span class="tag tag-dx">dx</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <span class="legend-label">Tags</span>
+  <span class="tag tag-sec">security</span>
+  <span class="tag tag-arch">architecture</span>
+  <span class="tag tag-test">tests</span>
+  <span class="tag tag-dx">dx</span>
+  <span class="tag tag-fe">frontend</span>
+  <span class="tag tag-be">backend</span>
+  <span class="tag tag-int">corsair</span>
+  <span class="tag tag-ai">ai</span>
+  <span class="tag tag-infra">infra</span>
+</div>
+
+<script>
+  function toggle(id) {
+    document.getElementById(id).classList.toggle('collapsed');
+  }
+
+  // Cycle status badges: Todo → Partial → Done → Todo
+  document.querySelectorAll('.status-badge').forEach(badge => {
+    badge.addEventListener('click', e => {
+      e.stopPropagation();
+      const states   = ['Todo','Partial','Done'];
+      const classes  = ['status-todo','status-partial','status-done'];
+      const cur = states.findIndex(s => badge.textContent.trim() === s);
+      const nxt = (cur + 1) % 3;
+      badge.textContent = states[nxt];
+      badge.classList.remove(...classes);
+      badge.classList.add(classes[nxt]);
+      rebuildCounts(badge.closest('.phase'));
+    });
+  });
+
+  function rebuildCounts(phase) {
+    let done = 0, partial = 0, todo = 0;
+    phase.querySelectorAll('.status-badge').forEach(b => {
+      const t = b.textContent.trim();
+      if (t === 'Done') done++;
+      else if (t === 'Partial') partial++;
+      else todo++;
+    });
+    const container = phase.querySelector('.phase-badges');
+    container.innerHTML = '';
+    if (done)    container.innerHTML += `<span class="count-badge count-done">${done} done</span>`;
+    if (partial) container.innerHTML += `<span class="count-badge count-partial">${partial} partial</span>`;
+    if (todo)    container.innerHTML += `<span class="count-badge count-todo">${todo} todo</span>`;
+  }
+</script>
+</body>
+</html>

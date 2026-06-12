@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken, getRefreshTokenCookie } from '@/lib/auth';
 
-import { EmailService } from '@/services/EmailService';
+import { EmailService } from '@/services/email.service';
 
 export async function GET(req: Request) {
   try {

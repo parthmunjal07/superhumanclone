@@ -113,3 +113,51 @@ model WebhookLog {
 
   @@index([processed])
 }
+
+model CorsairIntegration {
+  id         String   @id
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  name       String
+  config     Json
+  dek        String?
+
+  @@map("corsair_integrations")
+}
+
+model CorsairAccount {
+  id             String   @id
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+  tenant_id      String
+  integration_id String
+  config         Json
+  dek            String?
+
+  @@map("corsair_accounts")
+}
+
+model CorsairEntity {
+  id          String   @id
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  account_id  String
+  entity_id   String
+  entity_type String
+  version     String
+  data        Json
+
+  @@map("corsair_entities")
+}
+
+model CorsairEvent {
+  id         String   @id
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  account_id String
+  event_type String
+  payload    Json
+  status     String?
+
+  @@map("corsair_events")
+}
