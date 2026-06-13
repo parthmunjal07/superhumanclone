@@ -5,21 +5,26 @@ import { calendarEventSchema } from '@/schemas/calendar.schema';
 
 export async function GET(req: Request) {
   try {
+    console.log('[/api/calendar] GET request received');
     const refreshToken = await getRefreshTokenCookie();
+    console.log('[/api/calendar] refreshToken present:', !!refreshToken);
     if (!refreshToken) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const payload = verifyToken(refreshToken);
+    console.log('[/api/calendar] payload:', payload ? { userId: payload.userId, email: payload.email } : null);
     if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { searchParams } = new URL(req.url);
     const timeMin = searchParams.get('timeMin') || undefined;
     const timeMax = searchParams.get('timeMax') || undefined;
+    console.log('[/api/calendar] timeMin:', timeMin, 'timeMax:', timeMax);
 
     const events = await CalendarService.getEvents(payload.userId, timeMin, timeMax);
+    console.log('[/api/calendar] fetched events count:', events.length);
 
     return NextResponse.json({ events }, { status: 200 });
   } catch (error: any) {
-    console.error('Error fetching calendar events:', error);
+    console.error('[/api/calendar] Error fetching calendar events:', error);
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }

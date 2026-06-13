@@ -54,8 +54,8 @@ export default function InboxPage() {
     },
   });
 
-  const emails = data ? data.flatMap(page => page.emails || []) : [];
-  const selectedEmail = emails.find(e => e?.id === selectedEmailId) || null;
+  const emails = data ? data.flatMap(page => page.emails || []).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()) : [];
+  const selectedEmail = emails.find((e: any) => e?.id === selectedEmailId) || null;
 
   const isLoadingInitialData = !data && !error;
   const isLoadingMore = isLoadingInitialData || (size > 0 && data && typeof data[size - 1] === "undefined");

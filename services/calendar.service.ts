@@ -5,42 +5,24 @@ export class CalendarService {
     const t = await getTenant(userId);
     
     try {
-      // Get the access token to fetch the user's calendar list directly from Google API
-      // since Corsair's high-level SDK doesn't expose calendarList natively yet.
-      const token = await t.googlecalendar.keys.get_access_token();
-      const calListRes = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const calListData = await calListRes.json();
-      const calendars = calListData.items || [];
-
-      // Filter out holiday calendars to avoid clutter
-      const activeCalendars = calendars.filter((c: any) => !c.id.includes('#holiday'));
-
-      const queryParamsBase = {
+      const queryParams = {
+        calendarId: 'primary',
         singleEvents: true,
-        orderBy: 'startTime',
+        orderBy: 'startTime' as const,
         maxResults: 250,
         ...(timeMin ? { timeMin } : { timeMin: new Date().toISOString() }),
         ...(timeMax ? { timeMax } : {})
       };
 
-      // Fetch events for all active calendars in parallel
-      const eventPromises = activeCalendars.map(async (cal: any) => {
-        try {
-          const res = await t.googlecalendar.api.events.getMany({
-            calendarId: cal.id,
-            ...queryParamsBase
-          }) as any;
-          return res.items || res || [];
-        } catch (err) {
-          console.error(`[CalendarService] Failed to fetch events for calendar ${cal.id}:`, err);
-          return [];
-        }
-      });
-
-      const nestedEvents = await Promise.all(eventPromises);
-      const rawEvents = nestedEvents.flat();
+      console.log('[CalendarService] Fetching events with params:', queryParams);
+      
+      const res = await t.googlecalendar.api.events.getMany(queryParams) as any;
+      
+      console.log('[CalendarService] Response type:', typeof res, Array.isArray(res) ? `array(${res.length})` : 'not-array');
+      
+      // The SDK may return { items: [...] } or the array directly
+      const rawEvents = Array.isArray(res) ? res : (res?.items || []);
+      console.log('[CalendarService] Raw events count:', rawEvents.length);
       
       return rawEvents.map((e: any) => ({
         id: e.id,
@@ -55,7 +37,7 @@ export class CalendarService {
         colorId: e.colorId || null
       }));
     } catch (err: any) {
-      console.error("[CalendarService] Failed to fetch events:", err.message);
+      console.error("[CalendarService] Failed to fetch events:", err.message, err.stack);
       return [];
     }
   }

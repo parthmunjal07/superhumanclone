@@ -13,18 +13,35 @@ import {
   isSameDay,
   isToday,
   addMinutes,
-  differenceInMinutes
+  differenceInMinutes,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  subDays,
+  subMonths,
+  addMonths
 } from 'date-fns';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    console.error('[Calendar Fetcher] API error:', res.status, body);
+    throw new Error(body.error || `API error: ${res.status}`);
+  }
+  return res.json();
+};
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const CALENDAR_START_HOUR = 0;
 
 export default function CalendarPage() {
+  // force recompile to fix dev server bug
   const [currentDate, setCurrentDate] = useState(new Date());
   const [now, setNow] = useState(new Date());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const [view, setView] = useState<'day' | 'week' | 'month'>('week');
 
   // Update "now" every minute for the timeline
   useEffect(() => {
@@ -34,24 +51,53 @@ export default function CalendarPage() {
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
+  
+  const monthStart = startOfMonth(currentDate);
+  const monthEnd = endOfMonth(currentDate);
+  
+  // For day view, cover the full day (midnight to midnight)
+  const dayStart = new Date(currentDate);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(currentDate);
+  dayEnd.setHours(23, 59, 59, 999);
+  
+  const fetchStart = view === 'day' ? dayStart : view === 'week' ? weekStart : startOfWeek(monthStart, { weekStartsOn: 1 });
+  const fetchEnd = view === 'day' ? dayEnd : view === 'week' ? weekEnd : endOfWeek(monthEnd, { weekStartsOn: 1 });
 
   const { data, error, isLoading, mutate } = useSWR(
-    `/api/calendar?timeMin=${weekStart.toISOString()}&timeMax=${weekEnd.toISOString()}`,
+    `/api/calendar?timeMin=${fetchStart.toISOString()}&timeMax=${fetchEnd.toISOString()}`,
     fetcher
   );
 
   const events = data?.events || [];
 
   const days = useMemo(() => {
-    const d = [];
-    for (let i = 0; i < 7; i++) {
-      d.push(addDays(weekStart, i));
+    if (view === 'day') return [currentDate];
+    if (view === 'week') {
+      const d = [];
+      for (let i = 0; i < 7; i++) {
+        d.push(addDays(weekStart, i));
+      }
+      return d;
     }
-    return d;
-  }, [weekStart]);
+    // month view
+    const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
+    const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
+    return eachDayOfInterval({ start: startDate, end: endDate });
+  }, [view, currentDate, weekStart, monthStart, monthEnd]);
 
-  const handlePrevWeek = () => setCurrentDate(subWeeks(currentDate, 1));
-  const handleNextWeek = () => setCurrentDate(addWeeks(currentDate, 1));
+  const handlePrev = () => {
+    if (view === 'day') setCurrentDate(subDays(currentDate, 1));
+    else if (view === 'week') setCurrentDate(subWeeks(currentDate, 1));
+    else setCurrentDate(subMonths(currentDate, 1));
+  };
+
+  const handleNext = () => {
+    if (view === 'day') setCurrentDate(addDays(currentDate, 1));
+    else if (view === 'week') setCurrentDate(addWeeks(currentDate, 1));
+    else setCurrentDate(addMonths(currentDate, 1));
+  };
+
   const handleToday = () => setCurrentDate(new Date());
 
   // Form & Pane State
@@ -243,27 +289,48 @@ export default function CalendarPage() {
         {/* Header */}
         <div className="h-24 flex items-center justify-between px-8 shrink-0 border-b border-[#222]">
           <div>
-            <div className="text-[10px] font-bold text-zinc-500 tracking-[0.1em] uppercase mb-1">Week of</div>
+            <div className="text-[10px] font-bold text-zinc-500 tracking-[0.1em] uppercase mb-1">
+              {view === 'day' ? 'Day of' : view === 'week' ? 'Week of' : 'Month of'}
+            </div>
             <h2 className="text-[24px] font-bold text-white tracking-tight leading-none">
-              {format(weekStart, 'MMMM d')} – {format(weekEnd, 'd, yyyy')}
+              {view === 'day' 
+                ? format(currentDate, 'MMMM d, yyyy') 
+                : view === 'week'
+                  ? `${format(weekStart, 'MMMM d')} – ${format(weekEnd, 'd, yyyy')}`
+                  : format(currentDate, 'MMMM yyyy')}
             </h2>
           </div>
 
           <div className="flex items-center gap-4">
             <div className="flex items-center bg-[#151515] border border-[#222] rounded-lg p-1">
-              <button className="px-4 py-1.5 text-[11px] font-bold text-zinc-500 hover:text-white transition-colors uppercase tracking-wider">Day</button>
-              <button className="px-4 py-1.5 text-[11px] font-bold text-zinc-200 bg-[#2a2a2a] rounded-md transition-colors uppercase tracking-wider">Week</button>
-              <button className="px-4 py-1.5 text-[11px] font-bold text-zinc-500 hover:text-white transition-colors uppercase tracking-wider">Month</button>
+              <button 
+                onClick={() => setView('day')}
+                className={`px-4 py-1.5 text-[11px] font-bold transition-colors uppercase tracking-wider ${view === 'day' ? 'text-zinc-200 bg-[#2a2a2a] rounded-md' : 'text-zinc-500 hover:text-white'}`}
+              >
+                Day
+              </button>
+              <button 
+                onClick={() => setView('week')}
+                className={`px-4 py-1.5 text-[11px] font-bold transition-colors uppercase tracking-wider ${view === 'week' ? 'text-zinc-200 bg-[#2a2a2a] rounded-md' : 'text-zinc-500 hover:text-white'}`}
+              >
+                Week
+              </button>
+              <button 
+                onClick={() => setView('month')}
+                className={`px-4 py-1.5 text-[11px] font-bold transition-colors uppercase tracking-wider ${view === 'month' ? 'text-zinc-200 bg-[#2a2a2a] rounded-md' : 'text-zinc-500 hover:text-white'}`}
+              >
+                Month
+              </button>
             </div>
 
             <div className="flex items-center gap-2">
-              <button onClick={handlePrevWeek} className="p-2 bg-[#151515] border border-[#222] hover:bg-[#222] text-zinc-400 hover:text-white rounded-lg transition-colors">
+              <button onClick={handlePrev} className="p-2 bg-[#151515] border border-[#222] hover:bg-[#222] text-zinc-400 hover:text-white rounded-lg transition-colors">
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button onClick={handleToday} className="px-4 py-1.5 bg-[#151515] border border-[#222] hover:bg-[#222] text-[11px] font-bold text-zinc-400 hover:text-white rounded-lg transition-colors uppercase tracking-wider">
                 Today
               </button>
-              <button onClick={handleNextWeek} className="p-2 bg-[#151515] border border-[#222] hover:bg-[#222] text-zinc-400 hover:text-white rounded-lg transition-colors">
+              <button onClick={handleNext} className="p-2 bg-[#151515] border border-[#222] hover:bg-[#222] text-zinc-400 hover:text-white rounded-lg transition-colors">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -274,12 +341,65 @@ export default function CalendarPage() {
           </div>
         </div>
 
+        {/* Error / Loading States */}
+        {error && (
+          <div className="px-8 py-3 bg-red-500/10 border-b border-red-500/20 text-red-400 text-[13px] flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>Failed to load calendar: {error.message || 'Unknown error'}</span>
+          </div>
+        )}
+        {isLoading && (
+          <div className="px-8 py-3 border-b border-[#222] text-zinc-500 text-[13px]">
+            Loading calendar events...
+          </div>
+        )}
+
         {/* Calendar Grid Container */}
+        {view === 'month' ? (
+          <div className="flex-1 flex flex-col overflow-hidden bg-[#0a0a0a]">
+            {/* Days Header */}
+            <div className="grid grid-cols-7 border-b border-[#222] shrink-0">
+              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                <div key={day} className="py-2 text-center text-[11px] font-bold text-zinc-500 uppercase tracking-widest border-r border-[#222] last:border-r-0">
+                  {day}
+                </div>
+              ))}
+            </div>
+            {/* Month Grid */}
+            <div className="flex-1 grid grid-cols-7 auto-rows-[1fr] overflow-hidden">
+              {days.map((day, i) => {
+                const dayEvents = events.filter((e: any) => e.start && isSameDay(new Date(e.start), day));
+                const isCurrentMonth = day.getMonth() === currentDate.getMonth();
+                return (
+                  <div key={i} className={`border-r border-b border-[#222] flex flex-col p-1 overflow-hidden cursor-pointer hover:bg-white/5 transition-colors ${isCurrentMonth ? 'bg-transparent' : 'bg-[#111] opacity-50'}`} onClick={() => { setView('day'); setCurrentDate(day); }}>
+                    <div className={`text-[12px] font-bold p-1 w-6 h-6 flex items-center justify-center rounded-full mb-1 ${isToday(day) ? 'bg-white text-black' : 'text-zinc-400'}`}>
+                      {format(day, 'd')}
+                    </div>
+                    <div className="flex-1 overflow-y-auto flex flex-col gap-1 hide-scrollbar">
+                      {dayEvents.map((event: any, idx: number) => {
+                        const colorIdx = event.id ? event.id.charCodeAt(0) % bgColors.length : idx % bgColors.length;
+                        return (
+                          <div
+                            key={event.id}
+                            onClick={(e) => { e.stopPropagation(); handleEventClick(event); }}
+                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded truncate cursor-pointer ${bgColors[colorIdx]} ${textColors[colorIdx]} hover:opacity-80`}
+                          >
+                            {event.title || '(No Title)'}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
         <div className="flex-1 flex flex-col overflow-hidden bg-[#0a0a0a]">
           {/* Days Header */}
           <div className="flex border-b border-[#222] shrink-0">
             <div className="w-16 shrink-0 border-r border-[#222]" />
-            <div className="flex-1 grid grid-cols-7">
+            <div className={`flex-1 grid ${view === 'day' ? 'grid-cols-1' : 'grid-cols-7'}`}>
               {days.map((day, i) => {
                 return (
                   <div key={i} className="flex flex-col items-center justify-center py-3 border-r border-[#222] last:border-r-0">
@@ -309,7 +429,7 @@ export default function CalendarPage() {
             </div>
 
             {/* Grid Columns */}
-            <div className="flex-1 grid grid-cols-7 relative">
+            <div className={`flex-1 grid ${view === 'day' ? 'grid-cols-1' : 'grid-cols-7'} relative`}>
               {/* Horizontal Grid Lines */}
               <div className="absolute inset-0 pointer-events-none">
                 {HOURS.map((hour) => (
@@ -408,6 +528,7 @@ export default function CalendarPage() {
             </div>
           </div>
         </div>
+        )}
       </div>
 
       {/* Right Sidebar - Create Event */}
