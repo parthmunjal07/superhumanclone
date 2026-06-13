@@ -1,4 +1,4 @@
-import { formatDistanceToNow, format } from 'date-fns';
+import { format } from 'date-fns';
 
 interface Email {
   id: string;
@@ -10,49 +10,70 @@ interface Email {
   isRead: boolean;
 }
 
-export default function EmailItem({ email }: { email: Email }) {
-  // Simple extract name from "Name <email@example.com>" format
+export default function EmailItem({ email, isSelected }: { email: Email; isSelected?: boolean }) {
+  // Extract name from "Name <email@example.com>" format
   const senderMatch = email.from.match(/^([^<]+)</);
   const senderName = senderMatch ? senderMatch[1].trim() : email.from;
 
-  // Format date: if today, show time; else show "MMM d"
+  // Format date
   const emailDate = new Date(email.date);
   const isToday = new Date().toDateString() === emailDate.toDateString();
-  const timeString = isToday ? format(emailDate, 'h:mm a') : format(emailDate, 'MMM d');
+  const timeString = isToday ? format(emailDate, 'h:mm a').toUpperCase() : format(emailDate, 'EEE');
 
-  // Priority Dot Color
-  let dotColor = 'bg-transparent';
-  if (email.priorityLevel === 'High') dotColor = 'bg-red-500';
-  else if (email.priorityLevel === 'Normal') dotColor = 'bg-yellow-500';
-  else if (email.priorityLevel === 'Low') dotColor = 'bg-green-500';
+  // Priority config
+  const priorityConfig: Record<string, { dot: string; bg: string; text: string; label: string }> = {
+    High:   { dot: 'bg-red-500',    bg: 'bg-red-500/20',    text: 'text-red-400',    label: 'URGENT' },
+    Normal: { dot: 'bg-orange-500', bg: 'bg-orange-500/20', text: 'text-orange-400', label: 'NORMAL' },
+    Low:    { dot: 'bg-zinc-500',   bg: 'bg-zinc-700/50',   text: 'text-zinc-400',   label: 'FYI' },
+  };
+  const priority = email.priorityLevel ? priorityConfig[email.priorityLevel] : null;
+
+  // Strip HTML for clean preview
+  const previewText = email.body.replace(/<[^>]*>/g, '').slice(0, 140);
 
   return (
-    <div 
-      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-        email.isRead 
-          ? 'border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800' 
-          : 'border-zinc-700 bg-zinc-900 hover:bg-zinc-800 shadow-[inset_2px_0_0_0_#6366f1]'
+    <div
+      className={`px-4 py-4 cursor-pointer transition-colors border-b border-[#2a2a2a] ${
+        isSelected
+          ? 'bg-[#252525]'
+          : 'hover:bg-[#1e1e1e]'
       }`}
     >
-      <div className="flex justify-between items-baseline mb-1">
-        <div className="flex items-center gap-2 overflow-hidden">
-          {email.priorityLevel && (
-            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${dotColor}`} title={`Priority: ${email.priorityLevel}`} />
+      {/* Row 1: Priority dot + Sender + Time */}
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-2.5 min-w-0">
+          {priority && (
+            <div className={`w-[7px] h-[7px] rounded-full ${priority.dot} shrink-0`} />
           )}
-          <span className={`text-sm truncate ${email.isRead ? 'text-zinc-300 font-medium' : 'text-white font-bold'}`}>
+          <span className={`text-[13px] truncate ${
+            email.isRead ? 'text-zinc-400 font-medium' : 'text-white font-semibold'
+          }`}>
             {senderName}
           </span>
         </div>
-        <span className={`text-xs flex-shrink-0 ml-2 ${email.isRead ? 'text-zinc-500' : 'text-indigo-400 font-medium'}`}>
+        <span className="text-[11px] font-mono text-zinc-600 tabular-nums shrink-0 ml-3">
           {timeString}
         </span>
       </div>
-      <p className={`text-sm truncate mb-0.5 ${email.isRead ? 'text-zinc-400' : 'text-zinc-200 font-semibold'}`}>
+
+      {/* Row 2: Subject */}
+      <p className={`text-[13px] truncate mb-1 ${
+        email.isRead ? 'text-zinc-500' : 'text-zinc-200 font-semibold'
+      }`}>
         {email.subject}
       </p>
-      <p className="text-sm text-zinc-500 truncate">
-        {email.body}
+
+      {/* Row 3: Preview */}
+      <p className="text-[12px] text-zinc-600 line-clamp-2 leading-relaxed mb-2">
+        {previewText}
       </p>
+
+      {/* Row 4: Priority pill */}
+      {priority && (
+        <span className={`inline-block text-[10px] font-bold tracking-wider px-2 py-[3px] rounded ${priority.bg} ${priority.text} font-mono`}>
+          {priority.label}
+        </span>
+      )}
     </div>
   );
 }
