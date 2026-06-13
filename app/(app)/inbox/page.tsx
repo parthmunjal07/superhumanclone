@@ -17,6 +17,7 @@ export default function InboxPage() {
   const [listWidth, setListWidth] = useState(300);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<{ to: string; subject: string } | null>(null);
+  const [view, setView] = useState<'INBOX' | 'SENT' | 'SPAM'>('INBOX');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [isShortcutOverlayOpen, setIsShortcutOverlayOpen] = useState(false);
@@ -37,9 +38,9 @@ export default function InboxPage() {
     }
 
     if (previousPageData && !previousPageData.nextCursor) return null;
-    if (pageIndex === 0) return `/api/emails?limit=${limit}`;
-    return `/api/emails?cursor=${previousPageData.nextCursor}&limit=${limit}`;
-  }, [debouncedSearchQuery, limit]);
+    if (pageIndex === 0) return `/api/emails?limit=${limit}&view=${view}`;
+    return `/api/emails?cursor=${previousPageData.nextCursor}&limit=${limit}&view=${view}`;
+  }, [debouncedSearchQuery, limit, view]);
 
   const { data, error, size, setSize, isValidating, mutate } = useSWRInfinite(getKey, fetcher, {
     revalidateOnFocus: false,
@@ -168,7 +169,7 @@ export default function InboxPage() {
   return (
     <>
       {/* Pane 2: Email List */}
-      <div 
+      <div
         style={{ width: selectedEmailId ? listWidth : undefined }}
         className={`${selectedEmailId ? 'border-r border-[#2a2a2a] shrink-0' : 'flex-1'} bg-[#151515] flex flex-col h-full overflow-hidden relative`}
       >
@@ -196,8 +197,29 @@ export default function InboxPage() {
         )}
         {/* List Header */}
         <div className="h-12 flex items-center justify-between px-4 border-b border-[#2a2a2a] shrink-0">
-          <h2 className="text-[15px] font-semibold text-white">Inbox</h2>
+          <div className="flex items-center bg-[#1a1a1a] rounded-lg p-0.5 border border-[#333]">
+            {(['INBOX', 'SENT', 'SPAM'] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={`px-3 py-1 rounded-md text-[13px] font-medium transition-colors ${
+                  view === v 
+                    ? 'bg-[#2a2a2a] text-white shadow-sm' 
+                    : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                {v.charAt(0) + v.slice(1).toLowerCase()}
+              </button>
+            ))}
+          </div>
           <div className="flex items-center gap-1">
+            <button
+              onClick={() => setIsComposeOpen(true)}
+              className="p-1.5 px-3 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-md transition-colors mr-2"
+              title="Compose (c)"
+            >
+              Compose
+            </button>
             <button
               onClick={() => searchInputRef.current?.focus()}
               className="p-2 text-zinc-500 hover:text-white hover:bg-[#2a2a2a] rounded-md transition-colors"

@@ -10,6 +10,7 @@ export async function GET(req: Request) {
     const cursor = url.searchParams.get('cursor');
     const limitParam = url.searchParams.get('limit');
     const limit = limitParam ? parseInt(limitParam, 10) : 20;
+    const view = url.searchParams.get('view') || 'INBOX';
 
     const refreshToken = await getRefreshTokenCookie();
     if (!refreshToken) {
@@ -22,7 +23,7 @@ export async function GET(req: Request) {
 
     const userId = payload.userId;
 
-    const { emails, nextCursor } = await EmailService.getEmails(userId, limit, cursor);
+    const { emails, nextCursor } = await EmailService.getEmails(userId, limit, cursor, view);
 
     return NextResponse.json({
       emails,

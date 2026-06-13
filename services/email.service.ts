@@ -5,7 +5,7 @@ export class EmailService {
   /**
    * Fetch emails from Corsair DB Cache
    */
-  static async getEmails(userId: string, limit: number, cursor?: string | null) {
+  static async getEmails(userId: string, limit: number, cursor?: string | null, view: string = 'INBOX') {
     const t = await getTenant(userId);
     const offset = Number(cursor) || 0;
     
@@ -20,10 +20,20 @@ export class EmailService {
       let nextCursorStr: string | null = null;
 
       if (dbMessages.length > 1) {
-        const hasMore = dbMessages.length > limit;
+        let hasMore = dbMessages.length > limit;
         if (hasMore) dbMessages.pop(); // remove extra item
+
+        // Filter based on view
+        let filteredMessages = dbMessages;
+        if (view === 'SENT') {
+          filteredMessages = dbMessages.filter(m => (m.data?.labelIds || []).includes('SENT'));
+        } else if (view === 'SPAM') {
+          filteredMessages = dbMessages.filter(m => (m.data?.labelIds || []).includes('SPAM'));
+        } else {
+          filteredMessages = dbMessages.filter(m => !(m.data?.labelIds || []).includes('SENT') && !(m.data?.labelIds || []).includes('SPAM') && !(m.data?.labelIds || []).includes('TRASH'));
+        }
         
-        messages = dbMessages.map((m: any) => ({
+        messages = filteredMessages.map((m: any) => ({
           id: m.data?.id || m.id,
           subject: m.data?.subject || m.data?.snippet?.substring(0, 50) || '(No Subject)',
           body: m.data?.body || m.data?.snippet || '',
@@ -45,8 +55,17 @@ export class EmailService {
         const liveMsgs = await Promise.all(
           msgIds.map((m: any) => t.gmail.api.messages.get({ id: m.id }))
         );
+
+        let filteredLive = liveMsgs;
+        if (view === 'SENT') {
+          filteredLive = liveMsgs.filter(m => (m.labelIds || []).includes('SENT'));
+        } else if (view === 'SPAM') {
+          filteredLive = liveMsgs.filter(m => (m.labelIds || []).includes('SPAM'));
+        } else {
+          filteredLive = liveMsgs.filter(m => !(m.labelIds || []).includes('SENT') && !(m.labelIds || []).includes('SPAM') && !(m.labelIds || []).includes('TRASH'));
+        }
         
-        messages = liveMsgs.map((m: any) => {
+        messages = filteredLive.map((m: any) => {
           const headers = m.payload?.headers || [];
           const getHeader = (name: string) => headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value;
           return {

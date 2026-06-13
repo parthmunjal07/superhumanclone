@@ -13,20 +13,20 @@ export default function ComposeModal({ onClose, onSend, replyTo }: ComposeModalP
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const bodyRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (!to) {
+    if (!replyTo?.to) {
       document.getElementById('compose-to')?.focus();
     } else {
       bodyRef.current?.focus();
     }
-  }, [to]);
+  }, []); // Run only once on mount
 
   const handleSend = async () => {
     if (isSending) return;
 
-    const bodyText = bodyRef.current?.innerText || '';
+    const bodyText = bodyRef.current?.value || '';
 
     if (!to) {
       setError("Please specify a recipient.");
@@ -59,34 +59,25 @@ export default function ComposeModal({ onClose, onSend, replyTo }: ComposeModalP
     }
   };
 
-  // Mock chips for the visual (in a real app, this would be derived from the 'to' state)
+  // Render chips based on comma separated emails
   const renderChips = () => {
     if (to && to.includes(',')) {
       return to.split(',').map(t => t.trim()).filter(Boolean).map((t, i) => (
         <div key={i} className="flex items-center gap-1.5 bg-[#2a2a2a] border border-[#333] rounded-full px-3 py-1 mr-2 text-[13px] text-zinc-300">
           <div className={`w-1.5 h-1.5 rounded-full ${i % 2 === 0 ? 'bg-emerald-500' : 'bg-blue-500'}`} />
           {t}
-          <button className="text-zinc-500 hover:text-zinc-300 ml-1"><X className="w-3 h-3" /></button>
+          <button 
+            className="text-zinc-500 hover:text-zinc-300 ml-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              const newTo = to.split(',').map(email => email.trim()).filter(email => email !== t).join(', ');
+              setTo(newTo);
+            }}
+          >
+            <X className="w-3 h-3" />
+          </button>
         </div>
       ));
-    }
-    
-    // For visual match with the screenshot if 'to' is empty
-    if (!to) {
-      return (
-        <>
-          <div className="flex items-center gap-1.5 bg-[#2a2a2a] border border-[#333] rounded-full px-3 py-1 mr-2 text-[13px] text-zinc-300">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            elena@orbit.io
-            <button className="text-zinc-500 hover:text-zinc-300 ml-1"><X className="w-3 h-3" /></button>
-          </div>
-          <div className="flex items-center gap-1.5 bg-[#2a2a2a] border border-[#333] rounded-full px-3 py-1 mr-2 text-[13px] text-zinc-300">
-            <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-            marcus@orbit.io
-            <button className="text-zinc-500 hover:text-zinc-300 ml-1"><X className="w-3 h-3" /></button>
-          </div>
-        </>
-      )
     }
     return null;
   }
@@ -139,7 +130,7 @@ export default function ComposeModal({ onClose, onSend, replyTo }: ComposeModalP
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
                 className="flex-1 min-w-[150px] bg-transparent text-zinc-300 text-[13px] font-medium focus:outline-none placeholder:text-zinc-600"
-                placeholder={!to ? "Add recipients" : ""}
+                placeholder="To"
               />
             </div>
           </div>
@@ -158,7 +149,11 @@ export default function ComposeModal({ onClose, onSend, replyTo }: ComposeModalP
             
             <div 
               className="flex-1 bg-[#151515] border border-[#222] rounded-xl p-5 cursor-text overflow-y-auto flex flex-col"
-              onClick={() => bodyRef.current?.focus()}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  bodyRef.current?.focus();
+                }
+              }}
             >
               <input
                 id="compose-subject"
@@ -166,14 +161,12 @@ export default function ComposeModal({ onClose, onSend, replyTo }: ComposeModalP
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 className="w-full bg-transparent text-white text-[14px] font-medium focus:outline-none mb-4 placeholder:text-zinc-600"
-                placeholder="Subject: Q3 roadmap sign-off needed"
+                placeholder="Subject"
               />
-              <div
+              <textarea
                 ref={bodyRef}
-                contentEditable
-                className="flex-1 outline-none text-zinc-300 text-[14px] prose prose-invert max-w-none leading-relaxed"
-                data-placeholder="Write your message..."
-                suppressContentEditableWarning={true}
+                className="flex-1 outline-none text-zinc-300 text-[14px] bg-transparent resize-none placeholder:text-zinc-600 leading-relaxed"
+                placeholder="Write your message..."
               />
             </div>
           </div>
