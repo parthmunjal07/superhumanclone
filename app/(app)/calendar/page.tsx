@@ -1,183 +1,216 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import useSWR from 'swr';
-import { Calendar as CalendarIcon, Clock, MapPin, Info } from 'lucide-react';
-import { format, isToday, isTomorrow, parseISO } from 'date-fns';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { 
+  format, 
+  addDays, 
+  startOfWeek, 
+  endOfWeek, 
+  subWeeks, 
+  addWeeks, 
+  isSameDay, 
+  parseISO,
+  differenceInMinutes,
+  isToday
+} from 'date-fns';
+import { EventModal } from '@/components/EventModal';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+
 export default function CalendarPage() {
-  const { data, error, isLoading } = useSWR('/api/calendar?limit=50', fetcher);
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  
+  const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 }); // Sunday
+  const weekEnd = endOfWeek(currentDate, { weekStartsOn: 0 });
+
+  const { data, error, isLoading, mutate } = useSWR(
+    `/api/calendar?timeMin=${weekStart.toISOString()}&timeMax=${weekEnd.toISOString()}`,
+    fetcher
+  );
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [defaultStart, setDefaultStart] = useState<string | undefined>(undefined);
 
   const events = data?.events || [];
-  
-  // Group events by date
-  const groupedEvents = events.reduce((acc: any, event: any) => {
-    // some events might be all-day (just 'date' instead of 'dateTime')
-    const dateStr = format(new Date(event.start), 'yyyy-MM-dd');
-    if (!acc[dateStr]) acc[dateStr] = [];
-    acc[dateStr].push(event);
-    return acc;
-  }, {});
 
-  const dates = Object.keys(groupedEvents).sort();
-  
-  // Auto-select first event if none selected
-  const displayEventId = selectedEventId || (events.length > 0 ? events[0].id : null);
-  const selectedEvent = events.find((e: any) => e.id === displayEventId);
+  const days = useMemo(() => {
+    const d = [];
+    for (let i = 0; i < 7; i++) {
+      d.push(addDays(weekStart, i));
+    }
+    return d;
+  }, [weekStart]);
 
-  const formatHeader = (dateStr: string) => {
-    const d = parseISO(dateStr);
-    if (isToday(d)) return 'Today';
-    if (isTomorrow(d)) return 'Tomorrow';
-    return format(d, 'EEEE, MMMM d');
+  const handlePrevWeek = () => setCurrentDate(subWeeks(currentDate, 1));
+  const handleNextWeek = () => setCurrentDate(addWeeks(currentDate, 1));
+  const handleToday = () => setCurrentDate(new Date());
+
+  const handleEventClick = (event: any) => {
+    setSelectedEvent(event);
+    setDefaultStart(undefined);
+    setIsModalOpen(true);
   };
 
-  const formatEventTime = (dateString: string) => {
-    if (!dateString) return '';
-    // if it's an all-day event it won't have time, just date
-    if (dateString.length === 10) return 'All Day'; 
-    return format(new Date(dateString), 'h:mm a');
+  const handleGridClick = (day: Date, hour: number) => {
+    const d = new Date(day);
+    d.setHours(hour, 0, 0, 0);
+    setDefaultStart(d.toISOString());
+    setSelectedEvent(null);
+    setIsModalOpen(true);
+  };
+
+  const handleCreateNew = () => {
+    setSelectedEvent(null);
+    setDefaultStart(new Date().toISOString());
+    setIsModalOpen(true);
   };
 
   return (
-    <>
-      <div className="w-96 border-r border-zinc-800 bg-zinc-950 flex flex-col h-full overflow-hidden shrink-0">
-        <div className="h-24 flex flex-col justify-center px-4 border-b border-zinc-800 shrink-0">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white tracking-tight">Upcoming Events</h2>
-            <button className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-md transition-colors">
-              <CalendarIcon className="h-4 w-4" />
+    <div className="flex flex-col h-full bg-black text-white overflow-hidden">
+      {/* Header */}
+      <div className="h-16 border-b border-zinc-800 flex items-center justify-between px-6 shrink-0 bg-zinc-950">
+        <div className="flex items-center gap-4">
+          <h2 className="text-xl font-semibold text-white min-w-[150px]">
+            {format(weekStart, 'MMMM yyyy')}
+          </h2>
+          <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg p-0.5">
+            <button onClick={handlePrevWeek} className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-md transition-colors">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button onClick={handleToday} className="px-3 py-1.5 text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-800 rounded-md transition-colors">
+              Today
+            </button>
+            <button onClick={handleNextWeek} className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-md transition-colors">
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
+          {isLoading && <div className="text-xs text-zinc-500 animate-pulse ml-4">Loading...</div>}
+          {error && <div className="text-xs text-red-500 ml-4">Failed to load events</div>}
+        </div>
+        
+        <button 
+          onClick={handleCreateNew}
+          className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm shadow-indigo-500/20"
+        >
+          <Plus className="w-4 h-4" /> Create
+        </button>
+      </div>
+
+      {/* Week Grid */}
+      <div className="flex-1 flex flex-col overflow-hidden bg-zinc-950">
+        {/* Days Header */}
+        <div className="flex border-b border-zinc-800 shrink-0">
+          <div className="w-16 shrink-0 border-r border-zinc-800/50" />
+          <div className="flex-1 grid grid-cols-7">
+            {days.map((day, i) => (
+              <div key={i} className="text-center py-3 border-r border-zinc-800/50 last:border-r-0">
+                <div className="text-[11px] font-medium text-zinc-500 uppercase tracking-widest mb-1">{format(day, 'EEE')}</div>
+                <div className={`text-lg font-semibold w-8 h-8 mx-auto flex items-center justify-center rounded-full ${isToday(day) ? 'bg-indigo-500 text-white' : 'text-zinc-200'}`}>
+                  {format(day, 'd')}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-8 relative scroll-smooth">
-          {isLoading && (
-            <div className="flex justify-center mt-10">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500"></div>
-            </div>
-          )}
-          
-          {error && (
-            <div className="text-red-400 text-sm text-center mt-10">Failed to load calendar.</div>
-          )}
-
-          {!isLoading && !error && dates.length === 0 && (
-            <div className="text-zinc-500 text-sm text-center mt-10">No upcoming events.</div>
-          )}
-
-          {dates.map((dateStr) => (
-            <div key={dateStr}>
-              <h3 className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-3 px-1">
-                {formatHeader(dateStr)}
-              </h3>
-              <div className="space-y-1">
-                {groupedEvents[dateStr].map((event: any) => (
-                  <button
-                    key={event.id}
-                    onClick={() => setSelectedEventId(event.id)}
-                    className={`w-full text-left px-3 py-3 rounded-lg transition-all duration-200 border flex items-start space-x-3 group
-                      ${displayEventId === event.id 
-                        ? 'bg-zinc-800/80 border-zinc-700 shadow-sm' 
-                        : 'border-transparent hover:bg-zinc-900 hover:border-zinc-800'
-                      }`}
-                  >
-                    <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 transition-colors duration-300 ${displayEventId === event.id ? 'bg-indigo-400' : 'bg-indigo-500/50 group-hover:bg-indigo-500'}`} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-baseline mb-1">
-                        <span className={`text-sm font-medium truncate pr-2 ${displayEventId === event.id ? 'text-white' : 'text-zinc-200'}`}>
-                          {event.title}
-                        </span>
-                        <span className={`text-[11px] shrink-0 tabular-nums ${displayEventId === event.id ? 'text-indigo-300' : 'text-zinc-500'}`}>
-                          {formatEventTime(event.start)}
-                        </span>
-                      </div>
-                      <div className="text-xs text-zinc-400 truncate flex items-center">
-                        {event.location ? (
-                          <><MapPin className="h-3 w-3 inline mr-1 opacity-70" /> {event.location.split(',')[0]}</>
-                        ) : (
-                          event.description ? 'Description attached' : 'No location'
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                ))}
+        {/* Scrollable Grid Body */}
+        <div className="flex-1 overflow-y-auto flex">
+          {/* Time Labels */}
+          <div className="w-16 shrink-0 border-r border-zinc-800/50 bg-zinc-950 relative">
+            {HOURS.map((hour) => (
+              <div key={hour} className="h-20 relative">
+                <span className="absolute -top-2.5 right-2 text-xs font-medium text-zinc-500 pr-2">
+                  {hour === 0 ? '' : format(new Date().setHours(hour, 0), 'ha')}
+                </span>
               </div>
+            ))}
+          </div>
+
+          {/* Day Columns */}
+          <div className="flex-1 grid grid-cols-7 relative">
+            {/* Horizontal Grid Lines */}
+            <div className="absolute inset-0 pointer-events-none">
+              {HOURS.map((hour) => (
+                <div key={hour} className="h-20 border-t border-zinc-800/30 w-full" />
+              ))}
             </div>
-          ))}
+
+            {/* Vertical Columns */}
+            {days.map((day, i) => {
+              const dayEvents = events.filter((e: any) => {
+                if (!e.start) return false;
+                // Treat all-day events as starting at midnight of that day
+                const d = new Date(e.start);
+                return isSameDay(d, day);
+              });
+
+              return (
+                <div key={i} className="relative border-r border-zinc-800/50 last:border-r-0">
+                  {/* Clickable Slots */}
+                  {HOURS.map((hour) => (
+                    <div 
+                      key={hour} 
+                      className="h-20 w-full hover:bg-zinc-900/30 cursor-pointer transition-colors"
+                      onClick={() => handleGridClick(day, hour)}
+                    />
+                  ))}
+                  
+                  {/* Events */}
+                  {dayEvents.map((event: any) => {
+                    const startD = new Date(event.start);
+                    // Handle all-day events gracefully
+                    const isAllDay = event.start.length === 10;
+                    
+                    let top = 0;
+                    let height = 20; // default height for all day
+                    
+                    if (!isAllDay) {
+                      const endD = event.end ? new Date(event.end) : addDays(startD, 1);
+                      const startMinutes = startD.getHours() * 60 + startD.getMinutes();
+                      const durationMinutes = Math.max(differenceInMinutes(endD, startD), 30); // min 30m height
+                      
+                      top = (startMinutes / 60) * 80; // 80px per hour
+                      height = (durationMinutes / 60) * 80;
+                    }
+
+                    return (
+                      <div
+                        key={event.id}
+                        onClick={(e) => { e.stopPropagation(); handleEventClick(event); }}
+                        className="absolute left-1 right-1 rounded-md overflow-hidden bg-indigo-500/20 border border-indigo-500/30 text-indigo-200 hover:bg-indigo-500/30 hover:border-indigo-500/50 transition-colors cursor-pointer group flex flex-col z-10"
+                        style={{ top: `${top}px`, height: `${height}px` }}
+                        title={`${event.title}\n${event.description || ''}`}
+                      >
+                        <div className="px-2 py-1 flex-1 overflow-hidden">
+                          <div className="text-xs font-semibold truncate group-hover:text-indigo-100">{event.title}</div>
+                          {!isAllDay && height >= 40 && (
+                            <div className="text-[10px] text-indigo-300/80 truncate">
+                              {format(startD, 'h:mm a')} - {event.end ? format(new Date(event.end), 'h:mm a') : ''}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {/* Pane 3: Detail View */}
-      <div className="flex-1 bg-black overflow-y-auto relative">
-        {selectedEvent ? (
-          <div className="max-w-3xl mx-auto p-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h1 className="text-3xl font-bold text-white mb-8 tracking-tight leading-tight">
-              {selectedEvent.title}
-            </h1>
-            
-            <div className="space-y-4">
-              <div className="flex items-center text-zinc-300 bg-zinc-900/40 p-5 rounded-2xl border border-zinc-800/50 transition-all hover:border-zinc-700/50 hover:bg-zinc-900/60">
-                <div className="h-10 w-10 rounded-full bg-indigo-500/10 flex items-center justify-center mr-5 shrink-0">
-                  <Clock className="h-5 w-5 text-indigo-400" />
-                </div>
-                <div>
-                  <div className="font-medium text-white mb-0.5">
-                    {format(new Date(selectedEvent.start), 'EEEE, MMMM d, yyyy')}
-                  </div>
-                  <div className="text-sm text-zinc-400">
-                    {formatEventTime(selectedEvent.start)} {selectedEvent.end && selectedEvent.start !== selectedEvent.end && `- ${formatEventTime(selectedEvent.end)}`}
-                  </div>
-                </div>
-              </div>
-
-              {selectedEvent.location && (
-                <div className="flex items-center text-zinc-300 bg-zinc-900/40 p-5 rounded-2xl border border-zinc-800/50 transition-all hover:border-zinc-700/50 hover:bg-zinc-900/60">
-                  <div className="h-10 w-10 rounded-full bg-indigo-500/10 flex items-center justify-center mr-5 shrink-0">
-                    <MapPin className="h-5 w-5 text-indigo-400" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-white mb-0.5">Location</div>
-                    <div className="text-sm text-zinc-400 break-words">
-                      {selectedEvent.location.includes('http') ? (
-                        <a href={selectedEvent.location} target="_blank" rel="noreferrer" className="text-indigo-400 hover:text-indigo-300 transition-colors hover:underline">
-                          {selectedEvent.location}
-                        </a>
-                      ) : (
-                        selectedEvent.location
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {selectedEvent.description && (
-                <div className="flex items-start text-zinc-300 bg-zinc-900/40 p-5 rounded-2xl border border-zinc-800/50 transition-all hover:border-zinc-700/50 hover:bg-zinc-900/60">
-                  <div className="h-10 w-10 rounded-full bg-indigo-500/10 flex items-center justify-center mr-5 shrink-0 mt-1">
-                    <Info className="h-5 w-5 text-indigo-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-white mb-2 mt-1.5">Description</div>
-                    <div className="text-sm text-zinc-400 prose prose-invert prose-p:leading-relaxed max-w-none break-words" dangerouslySetInnerHTML={{ __html: selectedEvent.description }} />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="flex h-full items-center justify-center text-zinc-600">
-            <div className="text-center">
-              <div className="w-20 h-20 bg-zinc-900/50 rounded-full flex items-center justify-center mx-auto mb-5">
-                <CalendarIcon className="h-8 w-8 text-zinc-700" />
-              </div>
-              <p className="text-zinc-500">Select an event to view details</p>
-            </div>
-          </div>
-        )}
-      </div>
-    </>
+      <EventModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        event={selectedEvent}
+        defaultStart={defaultStart}
+        onSave={() => mutate()}
+      />
+    </div>
   );
 }
