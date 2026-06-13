@@ -82,11 +82,11 @@ export default function ReadingPane({ email, onArchive, onDelete, onReply }: Rea
         </div>
 
         <div className="flex items-center gap-2">
-          <button className="inline-flex items-center gap-2 px-3 py-1.5 text-[13px] font-medium text-zinc-300 bg-[#2a2a2a] hover:bg-[#333] border border-[#333] rounded-md transition-colors">
+          <button onClick={() => alert('Send to Slack integration coming soon!')} className="inline-flex items-center gap-2 px-3 py-1.5 text-[13px] font-medium text-zinc-300 bg-[#2a2a2a] hover:bg-[#333] border border-[#333] rounded-md transition-colors">
             <span className="text-zinc-500">#</span>
             Send to Slack
           </button>
-          <button className="p-2 text-zinc-500 hover:text-white hover:bg-[#2a2a2a] rounded-md transition-colors">
+          <button onClick={() => alert('More options coming soon!')} className="p-2 text-zinc-500 hover:text-white hover:bg-[#2a2a2a] rounded-md transition-colors">
             <MoreHorizontal className="h-4 w-4" />
           </button>
         </div>
@@ -180,12 +180,12 @@ export default function ReadingPane({ email, onArchive, onDelete, onReply }: Rea
 
           {/* Smart Chips */}
           <div className="flex flex-wrap gap-2 mb-8">
-            <button className="inline-flex items-center gap-2 px-3 py-2 text-[12px] font-medium text-zinc-300 bg-[#1a1a1a] hover:bg-[#222] border border-[#2a2a2a] rounded-lg transition-colors">
+            <button onClick={() => alert('Calendar integration coming soon!')} className="inline-flex items-center gap-2 px-3 py-2 text-[12px] font-medium text-zinc-300 bg-[#1a1a1a] hover:bg-[#222] border border-[#2a2a2a] rounded-lg transition-colors">
               <CalendarPlus className="w-3.5 h-3.5 text-zinc-500" />
               Add to calendar
               <span className="text-zinc-600 font-mono text-[11px]">Fri 2pm</span>
             </button>
-            <button className="inline-flex items-center gap-2 px-3 py-2 text-[12px] font-medium text-zinc-300 bg-[#1a1a1a] hover:bg-[#222] border border-[#2a2a2a] rounded-lg transition-colors">
+            <button onClick={() => alert('Linear integration coming soon!')} className="inline-flex items-center gap-2 px-3 py-2 text-[12px] font-medium text-zinc-300 bg-[#1a1a1a] hover:bg-[#222] border border-[#2a2a2a] rounded-lg transition-colors">
               <ListChecks className="w-3.5 h-3.5 text-zinc-500" />
               Create Linear issue
             </button>
@@ -200,7 +200,9 @@ export default function ReadingPane({ email, onArchive, onDelete, onReply }: Rea
               <Reply className="w-4 h-4 text-zinc-500" />
               Reply
             </button>
-            <button className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-zinc-300 bg-[#1a1a1a] hover:bg-[#222] border border-[#2a2a2a] rounded-lg transition-colors">
+            <button 
+              onClick={() => onReply(email.id)}
+              className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-zinc-300 bg-[#1a1a1a] hover:bg-[#222] border border-[#2a2a2a] rounded-lg transition-colors">
               <Forward className="w-4 h-4 text-zinc-500" />
               Forward
             </button>

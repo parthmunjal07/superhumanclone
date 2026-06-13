@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import useSWR from 'swr';
 import { ChevronLeft, ChevronRight, Plus, X, Video, Calendar as CalendarIcon, Clock, AlertCircle } from 'lucide-react';
+import CreateEventModal from '@/components/CreateEventModal';
 import {
   format,
   addDays,
@@ -100,11 +101,8 @@ export default function CalendarPage() {
 
   const handleToday = () => setCurrentDate(new Date());
 
-  // Form & Pane State
-  const [isPanelOpen, setIsPanelOpen] = useState(false);
-  const [panelWidth, setPanelWidth] = useState(360);
-
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [title, setTitle] = useState('');
   const [startText, setStartText] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
   const [endText, setEndText] = useState(format(addMinutes(new Date(), 30), "yyyy-MM-dd'T'HH:mm"));
@@ -120,52 +118,30 @@ export default function CalendarPage() {
 
   // Handlers
   const handleGridClick = (day: Date, hour: number) => {
-    const d = new Date(day);
-    d.setHours(hour, 0, 0, 0);
-    setSelectedEventId(null);
-    setTitle('');
-    setStartText(format(d, "yyyy-MM-dd'T'HH:mm"));
-    setEndText(format(addMinutes(d, 30), "yyyy-MM-dd'T'HH:mm"));
-    setRecurrence('NONE');
-    setAttendeesText('');
-    setDescription('');
-    setColorId(null);
-    setFormError('');
-    setFreeBusyData(null);
-    setIsPanelOpen(true);
+    // We can pass default start/end times to the modal in the future
+    setSelectedEvent(null);
+    setIsCreateModalOpen(true);
   };
 
   const handleEventClick = (event: any) => {
-    setSelectedEventId(event.id);
-    setTitle(event.title || '');
-    setStartText(event.start ? format(new Date(event.start), "yyyy-MM-dd'T'HH:mm") : '');
-    const startD = new Date(event.start);
-    const endD = event.end ? new Date(event.end) : addMinutes(startD, 30);
-    setEndText(format(endD, "yyyy-MM-dd'T'HH:mm"));
-    setRecurrence('NONE'); // Edit master instance recurrence is not supported for now
-    setAttendeesText(event.attendees ? event.attendees.map((a: any) => a.email).join(', ') : '');
-    setDescription(event.description || '');
-    setColorId(event.colorId || null);
-    setFormError('');
-    setFreeBusyData(null);
-    setIsPanelOpen(true);
+    setSelectedEvent({
+      id: event.id,
+      title: event.title || '',
+      start: event.start || '',
+      end: event.end || '',
+      description: event.description || '',
+      attendees: event.attendees ? event.attendees.map((a: any) => a.email) : []
+    });
+    setIsCreateModalOpen(true);
   };
 
   const handleCreateNew = () => {
-    setSelectedEventId(null);
-    setTitle('');
-    setStartText(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
-    setEndText(format(addMinutes(new Date(), 30), "yyyy-MM-dd'T'HH:mm"));
-    setRecurrence('NONE');
-    setAttendeesText('');
-    setDescription('');
-    setFormError('');
-    setFreeBusyData(null);
-    setIsPanelOpen(true);
+    setSelectedEvent(null);
+    setIsCreateModalOpen(true);
   };
 
   const handleClosePanel = () => {
-    setIsPanelOpen(false);
+    setIsCreateModalOpen(false);
   };
 
   // Free Busy Check
@@ -203,64 +179,34 @@ export default function CalendarPage() {
     return () => clearTimeout(handler);
   }, [startText, endText, attendeesText]);
 
-  const handleSubmit = async () => {
-    if (!startText) return;
-    setIsSubmitting(true);
-    setFormError('');
-    try {
-      const startDate = new Date(startText);
-      const endDate = new Date(endText);
+  const handleCreateSubmit = async (payload: { title: string; start: string; end: string; description: string; attendees: string[] }) => {
+    const isEdit = !!selectedEvent?.id;
+    const res = await fetch(isEdit ? '/api/calendar' : '/api/calendar/events', {
+      method: isEdit ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...payload,
+        ...(isEdit ? { eventId: selectedEvent.id } : {})
+      })
+    });
 
-      const payload = {
-        title: title || 'New Event',
-        start: startDate.toISOString(),
-        end: endDate.toISOString(),
-        description,
-        attendees: attendeesText.split(',').map(e => e.trim()).filter(e => e && e.includes('@')),
-        ...(colorId ? { colorId } : {}),
-        ...(recurrence !== 'NONE' ? { recurrence: [recurrence] } : {}),
-        ...(selectedEventId ? { eventId: selectedEventId } : {})
-      };
-
-      const res = await fetch('/api/calendar', {
-        method: selectedEventId ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to save event');
-      }
-
-      mutate();
-      handleClosePanel(); // clear form and close on success
-    } catch (err: any) {
-      setFormError(err.message);
-    } finally {
-      setIsSubmitting(false);
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to save event');
     }
+
+    mutate();
   };
 
-  const handleDeleteEvent = async () => {
-    if (!selectedEventId) return;
-    setIsSubmitting(true);
-    setFormError('');
-    try {
-      const res = await fetch(`/api/calendar?eventId=${selectedEventId}`, {
-        method: 'DELETE'
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to delete event');
-      }
-      mutate();
-      handleClosePanel();
-    } catch (err: any) {
-      setFormError(err.message);
-    } finally {
-      setIsSubmitting(false);
+  const handleDeleteEvent = async (eventId: string) => {
+    const res = await fetch(`/api/calendar?eventId=${eventId}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to delete event');
     }
+    mutate();
   };
 
   const hasConflicts = freeBusyData && Object.values(freeBusyData).some((cal: any) => cal.busy && cal.busy.length > 0);
@@ -531,237 +477,15 @@ export default function CalendarPage() {
         )}
       </div>
 
-      {/* Right Sidebar - Create Event */}
-      {isPanelOpen && (
-        <div
-          style={{ width: panelWidth }}
-          className="shrink-0 bg-[#111] flex flex-col h-full overflow-hidden border-l border-[#222] relative"
-        >
-          {/* Resize Handle */}
-          <div
-            className="absolute top-0 left-0 w-1.5 h-full cursor-col-resize hover:bg-zinc-500/50 z-50 transition-colors"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              const startX = e.clientX;
-              const startWidth = panelWidth;
-              const onMouseMove = (moveEvent: MouseEvent) => {
-                setPanelWidth(Math.max(300, Math.min(600, startWidth - (moveEvent.clientX - startX))));
-              };
-              const onMouseUp = () => {
-                document.removeEventListener('mousemove', onMouseMove);
-                document.removeEventListener('mouseup', onMouseUp);
-                document.body.style.cursor = 'default';
-              };
-              document.addEventListener('mousemove', onMouseMove);
-              document.addEventListener('mouseup', onMouseUp);
-              document.body.style.cursor = 'col-resize';
-            }}
-          />
 
-          <div className="p-6 flex-1 overflow-y-auto pb-20">
-            <div className="flex items-center justify-between mb-6">
-              <span className="text-[10px] font-bold text-zinc-500 tracking-[0.15em] uppercase">
-                {selectedEventId ? 'Edit Event' : 'Create Event'}
-              </span>
-              <button className="text-zinc-500 hover:text-white transition-colors" onClick={handleClosePanel}><X className="w-4 h-4" /></button>
-            </div>
 
-            <div className="space-y-6">
-              {formError && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-[12px] rounded-lg flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                  <span>{formError}</span>
-                </div>
-              )}
-
-              {/* Title */}
-              <div>
-                <label className="block text-[10px] font-bold text-zinc-500 tracking-[0.15em] uppercase mb-2">Title</label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={e => setTitle(e.target.value)}
-                  placeholder="Event title..."
-                  className="w-full bg-[#222] border border-[#333] rounded-lg px-3 py-2.5 text-[13px] text-white placeholder:text-zinc-500 focus:outline-none focus:border-zinc-500 transition-colors"
-                />
-              </div>
-
-              {/* Date / Time */}
-              <div className="gap-4">
-                <div className="flex-1 mb-4">
-                  <label className="block text-[10px] font-bold text-zinc-500 tracking-[0.15em] uppercase mb-2">Start</label>
-                  <input
-                    type="datetime-local"
-                    value={startText}
-                    onChange={e => {
-                      setStartText(e.target.value);
-                      if (endText && new Date(e.target.value) >= new Date(endText)) {
-                        setEndText(format(addMinutes(new Date(e.target.value), 30), "yyyy-MM-dd'T'HH:mm"));
-                      }
-                    }}
-                    className="w-full bg-[#222] border border-[#333] rounded-lg px-3 py-2.5 text-[13px] text-white focus:outline-none focus:border-zinc-500 transition-colors [color-scheme:dark]"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-[10px] font-bold text-zinc-500 tracking-[0.15em] uppercase mb-2">End</label>
-                  <input
-                    type="datetime-local"
-                    value={endText}
-                    onChange={e => setEndText(e.target.value)}
-                    className="w-full bg-[#222] border border-[#333] rounded-lg px-3 py-2.5 text-[13px] text-white focus:outline-none focus:border-zinc-500 transition-colors [color-scheme:dark]"
-                  />
-                </div>
-              </div>
-
-              {/* Repeat */}
-              {!selectedEventId && (
-                <div>
-                  <label className="block text-[10px] font-bold text-zinc-500 tracking-[0.15em] uppercase mb-2">Repeat</label>
-                  <select
-                    value={recurrence}
-                    onChange={e => setRecurrence(e.target.value)}
-                    className="w-full bg-[#222] border border-[#333] rounded-lg px-3 py-2.5 text-[13px] text-white focus:outline-none focus:border-zinc-500 transition-colors [color-scheme:dark]"
-                  >
-                    <option value="NONE">Does not repeat</option>
-                    <option value="RRULE:FREQ=DAILY">Daily</option>
-                    <option value="RRULE:FREQ=WEEKLY">Weekly</option>
-                    <option value="RRULE:FREQ=MONTHLY">Monthly</option>
-                    <option value="RRULE:FREQ=YEARLY">Yearly</option>
-                    <option value="RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR">Every weekday (Mon-Fri)</option>
-                  </select>
-                </div>
-              )}
-
-              {/* Attendees */}
-              <div>
-                <label className="block text-[10px] font-bold text-zinc-500 tracking-[0.15em] uppercase mb-2">Attendees</label>
-                <div className="flex flex-col gap-2 bg-[#222] border border-[#333] rounded-lg p-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {attendeeEmails.map((email, i) => (
-                      <div key={i} className="flex items-center gap-1.5 bg-[#1a1a1a] border border-[#2a2a2a] rounded-md px-2 py-1 text-[12px] text-zinc-300">
-                        <div className="w-3.5 h-3.5 bg-indigo-600 rounded flex items-center justify-center text-[8px] font-bold text-white uppercase">
-                          {email[0]}
-                        </div>
-                        {email}
-                        <button
-                          onClick={() => {
-                            const newEmails = attendeeEmails.filter(e => e !== email);
-                            setAttendeesText(newEmails.join(', '));
-                          }}
-                          className="text-zinc-500 hover:text-white ml-1"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <input
-                    type="text"
-                    value={attendeesText}
-                    onChange={e => setAttendeesText(e.target.value)}
-                    placeholder={attendeeEmails.length === 0 ? "Add comma separated emails..." : "Add..."}
-                    className="bg-transparent text-[13px] text-white placeholder:text-zinc-500 focus:outline-none px-1"
-                  />
-                </div>
-              </div>
-
-              {/* Free / Busy */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-[10px] font-bold text-zinc-500 tracking-[0.15em] uppercase">Free / Busy</label>
-                  {isCheckingFreeBusy ? (
-                    <span className="text-[10px] font-bold text-zinc-500 tracking-[0.1em] uppercase">Checking...</span>
-                  ) : freeBusyData ? (
-                    hasConflicts ? (
-                      <span className="text-[10px] font-bold text-orange-500 tracking-[0.1em] uppercase">Conflicts Found</span>
-                    ) : (
-                      <span className="text-[10px] font-bold text-emerald-500 tracking-[0.1em] uppercase">No Conflicts</span>
-                    )
-                  ) : null}
-                </div>
-
-                {freeBusyData && (
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-1 mb-1">
-                      {attendeeEmails.map((email, i) => {
-                        const isBusy = freeBusyData[email]?.busy?.length > 0;
-                        return (
-                          <div key={i} title={email} className={`flex-1 py-1 text-[9px] font-bold text-center rounded ${isBusy ? 'bg-[#3d1830] text-[#f8659f]' : 'bg-[#123636] text-[#34d399]'}`}>
-                            {isBusy ? 'BUSY' : 'FREE'}
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {hasConflicts && (
-                      <div className="text-[12px] text-orange-400 flex items-center gap-1.5">
-                        <AlertCircle className="w-3.5 h-3.5" />
-                        One or more attendees are busy.
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-[10px] font-bold text-zinc-500 tracking-[0.15em] uppercase mb-2">Notes</label>
-                <textarea
-                  placeholder="Agenda, context..."
-                  rows={3}
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  className="w-full bg-[#222] border border-[#333] rounded-lg px-3 py-2.5 text-[13px] text-white placeholder:text-zinc-500 focus:outline-none focus:border-zinc-500 transition-colors resize-none"
-                />
-              </div>
-
-              {/* Color Picker */}
-              <div>
-                <label className="block text-[10px] font-bold text-zinc-500 tracking-[0.15em] uppercase mb-2">Color</label>
-                <div className="flex flex-wrap gap-2">
-                  <button onClick={() => setColorId(null)} className={`w-6 h-6 rounded-full border-2 ${!colorId ? 'border-white' : 'border-transparent'} bg-[#333]`} title="Default" />
-                  <button onClick={() => setColorId('1')} className={`w-6 h-6 rounded-full border-2 ${colorId === '1' ? 'border-white' : 'border-transparent'} bg-[#7986cb]`} title="Lavender" />
-                  <button onClick={() => setColorId('2')} className={`w-6 h-6 rounded-full border-2 ${colorId === '2' ? 'border-white' : 'border-transparent'} bg-[#33b679]`} title="Sage" />
-                  <button onClick={() => setColorId('3')} className={`w-6 h-6 rounded-full border-2 ${colorId === '3' ? 'border-white' : 'border-transparent'} bg-[#8e24aa]`} title="Grape" />
-                  <button onClick={() => setColorId('4')} className={`w-6 h-6 rounded-full border-2 ${colorId === '4' ? 'border-white' : 'border-transparent'} bg-[#e67c73]`} title="Flamingo" />
-                  <button onClick={() => setColorId('5')} className={`w-6 h-6 rounded-full border-2 ${colorId === '5' ? 'border-white' : 'border-transparent'} bg-[#f6c026]`} title="Banana" />
-                  <button onClick={() => setColorId('6')} className={`w-6 h-6 rounded-full border-2 ${colorId === '6' ? 'border-white' : 'border-transparent'} bg-[#f5511d]`} title="Tangerine" />
-                  <button onClick={() => setColorId('7')} className={`w-6 h-6 rounded-full border-2 ${colorId === '7' ? 'border-white' : 'border-transparent'} bg-[#039be5]`} title="Peacock" />
-                  <button onClick={() => setColorId('8')} className={`w-6 h-6 rounded-full border-2 ${colorId === '8' ? 'border-white' : 'border-transparent'} bg-[#616161]`} title="Graphite" />
-                  <button onClick={() => setColorId('9')} className={`w-6 h-6 rounded-full border-2 ${colorId === '9' ? 'border-white' : 'border-transparent'} bg-[#3f51b5]`} title="Blueberry" />
-                  <button onClick={() => setColorId('10')} className={`w-6 h-6 rounded-full border-2 ${colorId === '10' ? 'border-white' : 'border-transparent'} bg-[#0b8043]`} title="Basil" />
-                  <button onClick={() => setColorId('11')} className={`w-6 h-6 rounded-full border-2 ${colorId === '11' ? 'border-white' : 'border-transparent'} bg-[#d50000]`} title="Tomato" />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-3 pt-2">
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleClosePanel}
-                    className="flex-1 py-2 rounded-lg border border-[#333] bg-[#1a1a1a] text-[13px] font-semibold text-zinc-300 hover:bg-[#222] transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSubmit}
-                    disabled={isSubmitting || !startText}
-                    className="flex-1 py-2 rounded-lg bg-white text-black text-[13px] font-semibold hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    {isSubmitting ? 'Saving...' : (selectedEventId ? 'Update Event' : <><Plus className="w-4 h-4" /> Create Event</>)}
-                  </button>
-                </div>
-                {selectedEventId && (
-                  <button
-                    onClick={handleDeleteEvent}
-                    disabled={isSubmitting}
-                    className="w-full py-2 rounded-lg border border-red-500/30 bg-red-500/10 text-red-500 text-[13px] font-semibold hover:bg-red-500/20 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    Delete Event
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+      {isCreateModalOpen && (
+        <CreateEventModal 
+          onClose={() => setIsCreateModalOpen(false)} 
+          onCreate={handleCreateSubmit} 
+          onDelete={handleDeleteEvent}
+          initialEvent={selectedEvent}
+        />
       )}
     </div>
   );

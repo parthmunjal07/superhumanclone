@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Superhuman Clone
 
-## Getting Started
+A high-performance, keyboard-centric email and calendar client inspired by Superhuman. Built with Next.js App Router, Tailwind CSS, Prisma, and Corsair for deep Google Workspace integration.
 
-First, run the development server:
+## 🚀 Current State of the Project
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+This project is actively in development. Below is a breakdown of what is fully functional (wired to the backend/APIs) and what is currently mocked UI.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### ✅ Fully Functional (Wired to Backend)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Authentication**: Fully working Google OAuth flow.
+- **Inbox Syncing**: 
+  - Real-time email fetching from your actual Gmail account.
+  - Emails are correctly sorted by date (newest first).
+  - Search functionality successfully queries your live inbox.
+- **Email Actions**: 
+  - **Read**: View sanitized HTML bodies of your actual emails in the reading pane.
+  - **Archive**: Removes the `INBOX` label from the email in Gmail.
+  - **Delete (Trash)**: Moves the email to the Trash folder in Gmail.
+  - **Reply / Forward / Compose**: The compose modal is functional and successfully sends emails via the Gmail API.
+- **Calendar Integration**: 
+  - Fetches events across all your active (non-holiday) Google Calendars.
+  - Fully working Day, Week, and Month views that correctly map your real events to a visual timeline.
+- **Sidebar**: Dynamic user profile display (pulls your name/initials) and working Logout functionality.
+- **Keyboard Shortcuts**: Basic global shortcuts are wired up:
+  - `c`: Compose new email
+  - `e`: Archive selected email
+  - `r`: Reply to selected email
+  - `/`: Focus search bar
+  - `?`: Toggle shortcut overlay
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 🚧 UI Only / Dummy Data (Coming Soon)
 
-## Learn More
+The following features exist in the UI to demonstrate the design and UX, but are not yet connected to real backend logic:
 
-To learn more about Next.js, take a look at the following resources:
+- **AI Features**: The "AI Summary" banner at the top of emails and the "Decision Log" (Open Questions / Action Items) are currently static mock text.
+- **Smart Chips / Third-Party Integrations**: 
+  - "Send to Slack" button
+  - "Add to calendar" smart chip
+  - "Create Linear issue" smart chip
+  - *Note: Clicking these currently displays a "Coming Soon" alert.*
+- **Advanced Filtering**: The filter icon next to the search bar is non-functional.
+- **Sidebar Modules**: The "Digest", "Agent", and "Settings" tabs in the sidebar navigate to placeholder pages without full implementation.
+- **Priority Badges**: Priority tags (Urgent/Normal/FYI) on emails are currently hardcoded/fallback placeholders.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🛠 Tech Stack
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Framework**: Next.js (App Router)
+- **Styling**: Tailwind CSS (with custom scrollbars and animations)
+- **Database**: Prisma ORM
+- **Integrations & Auth**: Corsair (Gmail API, Google Calendar API, DB Cache)
+- **Data Fetching**: SWR for optimistic UI updates and real-time caching
 
-## Deploy on Vercel
+## 💻 Getting Started
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+To run the project locally:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Ensure you have authenticated with Corsair CLI locally so your API routes have access to Google Workspace tokens.
+3. Run the Next.js development server:
+   ```bash
+   npm run dev
+   ```
+4. Open [http://localhost:3000](http://localhost:3000) with your browser.

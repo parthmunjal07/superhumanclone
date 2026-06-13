@@ -1,4 +1,5 @@
 import { getTenant } from '@/lib/corsair';
+import { prisma } from "@/lib/prisma";
 
 export class EmailService {
   /**
@@ -23,7 +24,7 @@ export class EmailService {
         if (hasMore) dbMessages.pop(); // remove extra item
         
         messages = dbMessages.map((m: any) => ({
-          id: m.id,
+          id: m.data?.id || m.id,
           subject: m.data?.subject || m.data?.snippet?.substring(0, 50) || '(No Subject)',
           body: m.data?.body || m.data?.snippet || '',
           from: m.data?.from || 'Unknown',
@@ -111,8 +112,17 @@ export class EmailService {
   static async archiveEmail(userId: string, emailId: string) {
     const t = await getTenant(userId);
     try {
+      // Resolve UUID to Gmail ID if a UUID was passed (handles stale frontend caches)
+      let resolvedId = emailId;
+      if (emailId.length > 20) {
+        const dbEmail = await prisma.email.findUnique({ where: { id: emailId } });
+        if (dbEmail?.corsairId) {
+          resolvedId = dbEmail.corsairId;
+        }
+      }
+
       await t.gmail.api.messages.modify({
-        id: emailId,
+        id: resolvedId,
         removeLabelIds: ["INBOX"]
       });
       return { success: true };
@@ -127,11 +137,21 @@ export class EmailService {
   static async deleteEmail(userId: string, emailId: string) {
     const t = await getTenant(userId);
     try {
+      // Resolve UUID to Gmail ID if a UUID was passed (handles stale frontend caches)
+      let resolvedId = emailId;
+      if (emailId.length > 20) {
+        const dbEmail = await prisma.email.findUnique({ where: { id: emailId } });
+        if (dbEmail?.corsairId) {
+          resolvedId = dbEmail.corsairId;
+        }
+      }
+
       await t.gmail.api.messages.trash({
-        id: emailId
+        id: resolvedId
       });
       return { success: true };
     } catch (err: any) {
+      console.error("[EmailService] Failed to delete email:", err.message, err.response?.data);
       throw new Error("Failed to delete email");
     }
   }
@@ -150,13 +170,13 @@ export class EmailService {
       }) as any[];
 
       return messages.map((m: any) => ({
-        id: m.id,
-        subject: m.subject || '(No Subject)',
-        body: m.snippet || m.body || '',
-        from: m.from || 'Unknown',
-        to: m.to || 'Me',
-        date: m.internalDate ? new Date(parseInt(m.internalDate)) : new Date(),
-        isRead: !((m.labelIds || []).includes('UNREAD')),
+        id: m.data?.id || m.id,
+        subject: m.data?.subject || m.data?.snippet?.substring(0, 50) || '(No Subject)',
+        body: m.data?.body || m.data?.snippet || '',
+        from: m.data?.from || 'Unknown',
+        to: m.data?.to || 'Me',
+        date: m.data?.date || m.created_at,
+        isRead: !((m.data?.labelIds || []).includes('UNREAD')),
         priorityLevel: 'Normal'
       }));
     } catch (err: any) {

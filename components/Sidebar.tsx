@@ -96,6 +96,13 @@ export default function Sidebar() {
             <p className="truncate text-[14px] font-semibold text-white">{user?.name || 'User'}</p>
             <p className="truncate text-[12px] text-zinc-500">{user?.email}</p>
           </div>
+          <button
+            onClick={logout}
+            className="p-1.5 text-zinc-500 hover:text-white hover:bg-[#222] rounded-md transition-colors"
+            title="Log out"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </div>

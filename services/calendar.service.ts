@@ -5,8 +5,25 @@ export class CalendarService {
     const t = await getTenant(userId);
     
     try {
-      const queryParams = {
-        calendarId: 'primary',
+      // Make a dummy call to force token refresh if expired
+      await t.googlecalendar.api.events.getMany({ calendarId: 'primary', maxResults: 1 }).catch(() => {});
+      
+      const token = await t.googlecalendar.keys.get_access_token();
+      
+      const calListRes = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const calListData = await calListRes.json();
+      
+      if (calListData.error) {
+        console.error('[CalendarService] Calendar list API error:', JSON.stringify(calListData.error));
+        return [];
+      }
+      
+      const calendars = calListData.items || [];
+      const activeCalendars = calendars.filter((c: any) => !c.id.includes('#holiday'));
+
+      const queryParamsBase = {
         singleEvents: true,
         orderBy: 'startTime' as const,
         maxResults: 250,
@@ -14,15 +31,21 @@ export class CalendarService {
         ...(timeMax ? { timeMax } : {})
       };
 
-      console.log('[CalendarService] Fetching events with params:', queryParams);
-      
-      const res = await t.googlecalendar.api.events.getMany(queryParams) as any;
-      
-      console.log('[CalendarService] Response type:', typeof res, Array.isArray(res) ? `array(${res.length})` : 'not-array');
-      
-      // The SDK may return { items: [...] } or the array directly
-      const rawEvents = Array.isArray(res) ? res : (res?.items || []);
-      console.log('[CalendarService] Raw events count:', rawEvents.length);
+      const eventPromises = activeCalendars.map(async (cal: any) => {
+        try {
+          const res = await t.googlecalendar.api.events.getMany({
+            calendarId: cal.id,
+            ...queryParamsBase
+          }) as any;
+          return Array.isArray(res) ? res : (res?.items || []);
+        } catch (err: any) {
+          console.error(`[CalendarService] Failed to fetch events for calendar ${cal.id}:`, err.message);
+          return [];
+        }
+      });
+
+      const nestedEvents = await Promise.all(eventPromises);
+      const rawEvents = nestedEvents.flat();
       
       return rawEvents.map((e: any) => ({
         id: e.id,

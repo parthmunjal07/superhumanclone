@@ -206,6 +206,7 @@ export default function InboxPage() {
               <Search className="h-4 w-4" />
             </button>
             <button
+              onClick={() => alert('Filter options coming soon!')}
               className="p-2 text-zinc-500 hover:text-white hover:bg-[#2a2a2a] rounded-md transition-colors"
               title="Filter"
             >
