@@ -7,7 +7,7 @@ import EmailItem from '@/components/EmailItem';
 import ReadingPane from '@/components/ReadingPane';
 import ComposeModal from '@/components/ComposeModal';
 import ShortcutOverlay from '@/components/ShortcutOverlay';
-import { Edit, Search, SlidersHorizontal } from 'lucide-react';
+import { Edit, Search, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -21,6 +21,8 @@ export default function InboxPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [isShortcutOverlayOpen, setIsShortcutOverlayOpen] = useState(false);
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Debounce search query
@@ -55,7 +57,11 @@ export default function InboxPage() {
     },
   });
 
-  const emails = data ? data.flatMap(page => page.emails || []).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()) : [];
+  const emails = data ? data.flatMap(page => page.emails || []).sort((a: any, b: any) => 
+    sortOrder === 'desc'
+      ? new Date(b.date).getTime() - new Date(a.date).getTime()
+      : new Date(a.date).getTime() - new Date(b.date).getTime()
+  ) : [];
   const selectedEmail = emails.find((e: any) => e?.id === selectedEmailId) || null;
 
   const isLoadingInitialData = !data && !error;
@@ -153,7 +159,8 @@ export default function InboxPage() {
           break;
         case '/':
           e.preventDefault();
-          searchInputRef.current?.focus();
+          setIsSearchVisible(true);
+          setTimeout(() => searchInputRef.current?.focus(), 0);
           break;
         case '?':
           e.preventDefault();
@@ -221,7 +228,17 @@ export default function InboxPage() {
               Compose
             </button>
             <button
-              onClick={() => searchInputRef.current?.focus()}
+              onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+              className="p-2 text-zinc-500 hover:text-white hover:bg-[#2a2a2a] rounded-md transition-colors"
+              title={`Sort: ${sortOrder === 'desc' ? 'New to Old' : 'Old to New'}`}
+            >
+              <ArrowUpDown className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => {
+                setIsSearchVisible(!isSearchVisible);
+                if (!isSearchVisible) setTimeout(() => searchInputRef.current?.focus(), 0);
+              }}
               className="p-2 text-zinc-500 hover:text-white hover:bg-[#2a2a2a] rounded-md transition-colors"
               title="Search (/)"
             >
@@ -237,8 +254,8 @@ export default function InboxPage() {
           </div>
         </div>
 
-        {/* Search Bar (hidden by default, could be toggled) */}
-        {searchQuery !== '' && (
+        {/* Search Bar */}
+        {(isSearchVisible || searchQuery !== '') && (
           <div className="px-3 py-2 border-b border-[#2a2a2a]">
             <input
               ref={searchInputRef}
@@ -250,15 +267,6 @@ export default function InboxPage() {
             />
           </div>
         )}
-        {/* Hidden input for focus target */}
-        <input
-          ref={searchInputRef}
-          type="text"
-          className="sr-only"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onFocus={() => setSearchQuery(searchQuery || '')}
-        />
 
         {/* Email List */}
         <div className="flex-1 overflow-y-auto">

@@ -22,11 +22,11 @@ export default function EmailItem({ email, isSelected }: { email: Email; isSelec
 
   // Priority config
   const priorityConfig: Record<string, { dot: string; bg: string; text: string; label: string }> = {
-    High:   { dot: 'bg-red-500',    bg: 'bg-red-500/20',    text: 'text-red-400',    label: 'URGENT' },
-    Normal: { dot: 'bg-orange-500', bg: 'bg-orange-500/20', text: 'text-orange-400', label: 'NORMAL' },
-    Low:    { dot: 'bg-zinc-500',   bg: 'bg-zinc-700/50',   text: 'text-zinc-400',   label: 'FYI' },
+    URGENT: { dot: 'bg-red-500',    bg: 'bg-red-500/20',    text: 'text-red-400',    label: 'URGENT' },
+    NORMAL: { dot: 'bg-orange-500', bg: 'bg-orange-500/20', text: 'text-orange-400', label: 'NORMAL' },
+    FYI:    { dot: 'bg-zinc-500',   bg: 'bg-zinc-700/50',   text: 'text-zinc-400',   label: 'FYI' },
   };
-  const priority = email.priorityLevel ? priorityConfig[email.priorityLevel] : null;
+  const priority = email.priorityLevel ? priorityConfig[email.priorityLevel.toUpperCase()] : null;
 
   // Strip HTML for clean preview
   const previewText = email.body.replace(/<[^>]*>/g, '').slice(0, 140);

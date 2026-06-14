@@ -77,19 +77,43 @@ const getActionBadgeStyle = (type: string) => {
 
 export default function DigestPage() {
   const [isLoading, setIsLoading] = useState(true);
-  const [data, setData] = useState<typeof mockDigestData | null>(null);
+  const [data, setData] = useState<any>(null); // any type for simplicity
 
-  const fetchDigest = () => {
+  const fetchDigest = async () => {
     setIsLoading(true);
-    setTimeout(() => {
-      setData(mockDigestData);
+    try {
+      const res = await fetch('/api/digest');
+      if (res.ok) {
+        const json = await res.json();
+        setData(json);
+      }
+    } catch (error) {
+      console.error('Failed to fetch digest:', error);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
+  };
+
+  const regenerateDigest = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/digest', { method: 'POST' });
+      if (res.ok) {
+        const json = await res.json();
+        setData(json);
+      }
+    } catch (error) {
+      console.error('Failed to regenerate digest:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchDigest();
   }, []);
+
+  const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
   return (
     <div className="flex-1 overflow-y-auto bg-[#0a0a0a] text-white">
@@ -99,11 +123,11 @@ export default function DigestPage() {
         <div className="flex items-start justify-between mb-8">
           <div>
             <h2 className="text-[10px] font-bold tracking-[0.25em] text-zinc-500 uppercase mb-2">Morning Digest</h2>
-            <h1 className="text-[34px] font-bold text-white tracking-tight leading-none">Monday, July 15</h1>
+            <h1 className="text-[34px] font-bold text-white tracking-tight leading-none">{todayStr}</h1>
           </div>
           
           <button 
-            onClick={fetchDigest}
+            onClick={regenerateDigest}
             disabled={isLoading}
             className="flex items-center gap-2 bg-transparent hover:bg-white/5 border border-[#333] px-4 py-2 rounded-full text-[13px] font-medium text-white transition-colors disabled:opacity-50"
           >
@@ -152,7 +176,7 @@ export default function DigestPage() {
                 <section>
                   <h3 className="text-[11px] font-bold tracking-[0.2em] text-zinc-500 uppercase mb-5">Today's Meetings</h3>
                   <div className="space-y-4">
-                    {data.meetings.map(meeting => (
+                    {data.meetings.map((meeting: any) => (
                       <div key={meeting.id} className="relative bg-[#111] border border-[#222] rounded-xl p-5 overflow-hidden">
                         <div className={`absolute left-0 top-0 bottom-0 w-1 ${meeting.color === 'cyan' ? 'bg-cyan-400' : 'bg-amber-400'}`} />
                         
@@ -162,7 +186,7 @@ export default function DigestPage() {
                             <p className="text-[11px] font-mono tracking-widest text-zinc-500 uppercase">{meeting.time}</p>
                           </div>
                           <div className="flex items-center -space-x-1">
-                            {meeting.attendees?.map((att, i) => (
+                            {meeting.attendees?.map((att: any, i: number) => (
                               <div key={i} className="w-[22px] h-[22px] rounded-full bg-[#222] border border-[#111] flex items-center justify-center text-[8px] font-bold text-zinc-300">
                                 {att}
                               </div>
@@ -176,7 +200,7 @@ export default function DigestPage() {
                             <span className="text-[12px] font-medium text-zinc-400">AI Prep Notes</span>
                           </div>
                           <ul className="space-y-2.5">
-                            {meeting.notes?.map((note, i) => (
+                            {meeting.notes?.map((note: any, i: number) => (
                               <li key={i} className="flex items-start gap-3 text-[13px] text-zinc-300">
                                 <div className="w-1 h-1 rounded-full bg-zinc-600 mt-2 shrink-0" />
                                 <span className="leading-relaxed">{note}</span>
@@ -193,7 +217,7 @@ export default function DigestPage() {
                 <section>
                   <h3 className="text-[11px] font-bold tracking-[0.2em] text-zinc-500 uppercase mb-5">Action Items</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {data.actionItems.map(item => (
+                    {data.actionItems.map((item: any) => (
                       <div key={item.id} className="bg-[#111] border border-[#222] rounded-xl p-5 flex flex-col justify-between min-h-[140px]">
                         <div className="flex justify-between items-start gap-4">
                           <p className="text-[14px] font-medium text-white leading-snug">{item.text}</p>
@@ -216,7 +240,7 @@ export default function DigestPage() {
                 <section>
                   <h3 className="text-[11px] font-bold tracking-[0.2em] text-zinc-500 uppercase mb-5">Waiting On</h3>
                   <div className="space-y-4">
-                    {data.waitingOn.map(item => (
+                    {data.waitingOn.map((item: any) => (
                       <div key={item.id} className="bg-[#111] border border-[#222] rounded-xl p-5">
                         <div className="flex items-center gap-3 mb-3">
                           <Clock className="w-4 h-4 text-zinc-500 shrink-0" />
@@ -238,7 +262,7 @@ export default function DigestPage() {
                 <section>
                   <h3 className="text-[11px] font-bold tracking-[0.2em] text-zinc-500 uppercase mb-5">FYI / Reading</h3>
                   <div className="space-y-3">
-                    {data.fyi.map(item => (
+                    {data.fyi.map((item: any) => (
                       <div key={item.id} className="bg-[#111] border border-[#222] rounded-xl p-4 flex items-center justify-between gap-4">
                         <div>
                           <h4 className="text-[13px] font-semibold text-white mb-0.5">{item.title}</h4>

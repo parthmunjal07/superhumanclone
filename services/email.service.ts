@@ -6,7 +6,16 @@ export class EmailService {
    * Fetch emails from Corsair DB Cache
    */
   static async getEmails(corsairUserId: string, limit: number, cursor?: string | null, view: string = 'INBOX') {
-    const t = await getCorsairClient(corsairUserId);
+    // If the passed ID is an internal userId, fetch the corsairUserId first (fix for route.ts passing userId)
+    let finalCorsairId = corsairUserId;
+    if (corsairUserId.startsWith('cm')) {
+      const user = await prisma.user.findUnique({ where: { id: corsairUserId } });
+      if (user?.corsairUserId) {
+        finalCorsairId = user.corsairUserId;
+      }
+    }
+    
+    const t = await getCorsairClient(finalCorsairId);
     
     try {
       const listResult = await t.run<{ messages: any[], nextPageToken?: string }>('gmail.api.messages.list', {
