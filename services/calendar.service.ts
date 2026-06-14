@@ -1,51 +1,25 @@
-import { getTenant } from '@/lib/corsair';
+import { getCorsairClient } from '@/lib/corsair';
 
 export class CalendarService {
-  static async getEvents(userId: string, timeMin?: string, timeMax?: string) {
-    const t = await getTenant(userId);
-    
+  static async getEvents(corsairUserId: string, timeMin?: string, timeMax?: string) {
+    const t = await getCorsairClient(corsairUserId);
     try {
-      // Make a dummy call to force token refresh if expired
-      await t.googlecalendar.api.events.getMany({ calendarId: 'primary', maxResults: 1 }).catch(() => {});
-      
-      const token = await t.googlecalendar.keys.get_access_token();
-      
-      const calListRes = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const calListData = await calListRes.json();
-      
-      if (calListData.error) {
-        console.error('[CalendarService] Calendar list API error:', JSON.stringify(calListData.error));
-        return [];
-      }
-      
-      const calendars = calListData.items || [];
-      const activeCalendars = calendars.filter((c: any) => !c.id.includes('#holiday'));
-
       const queryParamsBase = {
         singleEvents: true,
-        orderBy: 'startTime' as const,
+        orderBy: 'startTime',
         maxResults: 250,
-        ...(timeMin ? { timeMin } : { timeMin: new Date().toISOString() }),
+        timeMin: timeMin || new Date().toISOString(),
         ...(timeMax ? { timeMax } : {})
       };
 
-      const eventPromises = activeCalendars.map(async (cal: any) => {
-        try {
-          const res = await t.googlecalendar.api.events.getMany({
-            calendarId: cal.id,
-            ...queryParamsBase
-          }) as any;
-          return Array.isArray(res) ? res : (res?.items || []);
-        } catch (err: any) {
-          console.error(`[CalendarService] Failed to fetch events for calendar ${cal.id}:`, err.message);
-          return [];
-        }
+      const result = await t.run<{ items: any[] }>('googlecalendar.api.events.getMany', {
+        calendarId: 'primary',
+        ...queryParamsBase
       });
 
-      const nestedEvents = await Promise.all(eventPromises);
-      const rawEvents = nestedEvents.flat();
+      if (!result.success) throw new Error("Corsair auth failed");
+
+      const rawEvents = result.data.items || [];
       
       return rawEvents.map((e: any) => ({
         id: e.id,
@@ -60,18 +34,18 @@ export class CalendarService {
         colorId: e.colorId || null
       }));
     } catch (err: any) {
-      console.error("[CalendarService] Failed to fetch events:", err.message, err.stack);
+      console.error("[CalendarService] Failed to fetch events:", err.message);
       return [];
     }
   }
 
-  static async createEvent(userId: string, data: any) {
-    const t = await getTenant(userId);
+  static async createEvent(corsairUserId: string, data: any) {
+    const t = await getCorsairClient(corsairUserId);
     try {
-      const res = await t.googlecalendar.api.events.create({
+      const result = await t.run<any>('googlecalendar.api.events.create', {
         calendarId: 'primary',
         sendUpdates: 'all',
-        event: {
+        requestBody: {
           summary: data.title,
           description: data.description || '',
           location: data.location || '',
@@ -82,21 +56,22 @@ export class CalendarService {
           ...(data.recurrence ? { recurrence: data.recurrence } : {})
         }
       });
-      return { success: true, event: res };
+      if (!result.success) throw new Error("Corsair auth failed");
+      return { success: true, event: result.data };
     } catch (err: any) {
       console.error("[CalendarService] Failed to create event:", err.message);
       throw new Error(err.message || 'Failed to create event');
     }
   }
 
-  static async updateEvent(userId: string, eventId: string, data: any) {
-    const t = await getTenant(userId);
+  static async updateEvent(corsairUserId: string, eventId: string, data: any) {
+    const t = await getCorsairClient(corsairUserId);
     try {
-      const res = await t.googlecalendar.api.events.update({
+      const result = await t.run<any>('googlecalendar.api.events.update', {
         calendarId: 'primary',
-        id: eventId,
+        eventId: eventId,
         sendUpdates: 'all',
-        event: {
+        requestBody: {
           summary: data.title,
           description: data.description || '',
           location: data.location || '',
@@ -107,21 +82,23 @@ export class CalendarService {
           ...(data.recurrence ? { recurrence: data.recurrence } : {})
         }
       });
-      return { success: true, event: res };
+      if (!result.success) throw new Error("Corsair auth failed");
+      return { success: true, event: result.data };
     } catch (err: any) {
       console.error("[CalendarService] Failed to update event:", err.message);
       throw new Error(err.message || 'Failed to update event');
     }
   }
 
-  static async deleteEvent(userId: string, eventId: string) {
-    const t = await getTenant(userId);
+  static async deleteEvent(corsairUserId: string, eventId: string) {
+    const t = await getCorsairClient(corsairUserId);
     try {
-      await t.googlecalendar.api.events.delete({
+      const result = await t.run<any>('googlecalendar.api.events.deleteEvent', {
         calendarId: 'primary',
-        id: eventId,
+        eventId: eventId,
         sendUpdates: 'all'
       });
+      if (!result.success) throw new Error("Corsair auth failed");
       return { success: true };
     } catch (err: any) {
       console.error("[CalendarService] Failed to delete event:", err.message);
@@ -129,10 +106,7 @@ export class CalendarService {
     }
   }
 
-  static async checkFreeBusy(userId: string, timeMin: string, timeMax: string, items: string[]) {
-    // Note: Corsair's Google Calendar SDK currently only exposes 'events' and 'calendar'.
-    // The 'freebusy' endpoint is not yet supported in the SDK types.
-    // Stubbing this out to return empty data so the UI doesn't crash.
+  static async checkFreeBusy(corsairUserId: string, timeMin: string, timeMax: string, items: string[]) {
     return {};
   }
 }
