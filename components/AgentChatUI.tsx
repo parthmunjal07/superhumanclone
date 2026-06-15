@@ -15,7 +15,7 @@ export function AgentChatUI({ onClose, isDocked = false }: { onClose?: () => voi
 
   const [input, setInput] = useState('');
   
-  const { messages, append, status } = useChat({
+  const { messages, sendMessage, status } = useChat({
     api: '/api/chat',
     initialMessages: [], // Strict React state, no localStorage
   });
@@ -36,7 +36,7 @@ export function AgentChatUI({ onClose, isDocked = false }: { onClose?: () => voi
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!input || !input.trim()) return;
-    append({ role: 'user', content: input });
+    sendMessage({ text: input });
     setInput('');
   };
 
@@ -105,16 +105,29 @@ export function AgentChatUI({ onClose, isDocked = false }: { onClose?: () => voi
                 {m.role === 'user' ? 'You' : 'Agent'}
               </div>
               
-              {m.content && (
-                <div className="bg-[#1a1a1a] border border-[#222] rounded-xl p-4 text-[13px] text-zinc-200 leading-relaxed whitespace-pre-wrap">
+              {m.content && m.content.length > 0 && (
+                <div className="bg-[#1a1a1a] border border-[#222] rounded-xl p-4 text-[13px] text-zinc-200 leading-relaxed whitespace-pre-wrap break-all">
                   {m.content}
                 </div>
               )}
-
+              {(!m.content || m.content.length === 0) && m.parts && m.parts.map((p: any, i: number) => {
+                if (p.type === 'text' && p.text) {
+                  return (
+                    <div key={i} className="bg-[#1a1a1a] border border-[#222] rounded-xl p-4 text-[13px] text-zinc-200 leading-relaxed whitespace-pre-wrap break-all mt-2">
+                      {p.text}
+                    </div>
+                  );
+                }
+                return null;
+              })}
               {/* MCP Action Log parsed from stream */}
-              {m.toolInvocations && m.toolInvocations.length > 0 && (
-                <ActionLog toolInvocations={m.toolInvocations} />
-              )}
+              {(() => {
+                const tools = m.toolInvocations || (m.parts ? m.parts.filter((p: any) => p.type === 'tool-invocation' || p.type === 'dynamic-tool' || p.type === 'tool') : []);
+                if (tools.length > 0) {
+                  return <ActionLog toolInvocations={tools} />;
+                }
+                return null;
+              })()}
             </div>
           </div>
         ))}
@@ -197,15 +210,20 @@ function ActionLog({ toolInvocations }: { toolInvocations: any[] }) {
       </button>
       {logOpen && (
         <div className="p-4 space-y-4 border-t border-[#222]">
-          {toolInvocations.map((tool, idx) => (
-            <ToolCallItem
-              key={tool.toolCallId || idx}
-              name={tool.toolName}
-              state={tool.state}
-              input={JSON.stringify(tool.args, null, 2)}
-              output={tool.state === 'result' ? JSON.stringify(tool.result, null, 2) : 'running...'}
-            />
-          ))}
+          {toolInvocations.map((tool, idx) => {
+            const state = tool.state === 'output-available' || tool.state === 'result' ? 'result' : tool.state || 'running';
+            const inputStr = JSON.stringify(tool.args || tool.input, null, 2);
+            const outputStr = state === 'result' ? JSON.stringify(tool.result || tool.output, null, 2) : 'running...';
+            return (
+              <ToolCallItem
+                key={tool.toolCallId || idx}
+                name={tool.toolName}
+                state={state}
+                input={inputStr}
+                output={outputStr}
+              />
+            );
+          })}
         </div>
       )}
     </div>

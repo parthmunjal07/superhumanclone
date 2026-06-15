@@ -11,6 +11,7 @@
     "tunnel": "ngrok http 3000"
   },
   "dependencies": {
+    "@ai-sdk/mcp": "^1.0.50",
     "@ai-sdk/openai": "^3.0.71",
     "@ai-sdk/react": "^3.0.207",
     "@base-ui/react": "^1.5.0",

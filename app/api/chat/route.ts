@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { streamText } from 'ai';
+import { streamText, convertToModelMessages, stepCountIs } from 'ai';
 import { openrouter } from '@/lib/ai';
 import { getCorsairClient } from '@/lib/corsair';
 import { prisma } from '@/lib/prisma';
@@ -14,8 +14,12 @@ export async function POST(req: NextRequest) {
       return new Response(JSON.stringify({ error: 'Messages array is required' }), { status: 400 });
     }
 
+    // Map UIMessages to CoreMessages using the official SDK utility
+    const coreMessages = await convertToModelMessages(messages);
+
     // Try to get the current authenticated user
-    let user = null;
+    let user = await prisma.user.findFirst(); // HARDCODED FOR TESTING
+    /*
     const token = await getRefreshTokenCookie();
     if (token) {
       const payload = verifyToken(token);
@@ -23,6 +27,7 @@ export async function POST(req: NextRequest) {
         user = await prisma.user.findUnique({ where: { id: payload.userId } });
       }
     }
+    */
 
     // Prepare system prompt parameters
     const userName = user?.name || 'User';
@@ -54,13 +59,14 @@ Never invent information if you can use a tool to fetch it.`;
     }
 
     const result = await streamText({
-      model: openrouter('anthropic/claude-3.5-sonnet'),
+      model: openrouter('anthropic/claude-3-haiku'),
       system: systemPrompt,
-      messages,
+      messages: coreMessages,
       tools,
+      stopWhen: stepCountIs(5),
     });
 
-    return result.toTextStreamResponse();
+    return result.toUIMessageStreamResponse();
   } catch (error) {
     console.error('API Agent route error:', error);
     return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500 });

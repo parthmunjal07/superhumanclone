@@ -65,6 +65,7 @@ export class EmailService {
     }
   }
 
+  
   /**
    * Send a new email using Corsair API
    */
