@@ -21,7 +21,7 @@ export function AgentDockWrapper() {
       ) : (
         <button 
           onClick={() => setIsOpen(true)}
-          className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-full p-4 shadow-xl shadow-indigo-900/20 transition-all hover:scale-105 active:scale-95 group flex items-center justify-center"
+          className="bg-blue-600 hover:bg-blue-500 text-white rounded-full p-4 shadow-xl shadow-blue-900/20 transition-all hover:scale-105 active:scale-95 group flex items-center justify-center"
           title="Open Agent (⌘K)"
         >
           <MessageSquareText className="w-6 h-6" />

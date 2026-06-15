@@ -8,7 +8,8 @@ export const calendarEventSchema = z.object({
   description: z.string().optional(),
   attendees: z.array(z.string().email('Invalid email')).optional(),
   colorId: z.string().optional(),
-  recurrence: z.array(z.string()).optional()
+  recurrence: z.array(z.string()).optional(),
+  addMeetLink: z.boolean().optional()
 });
 
 export type CalendarEventInput = z.infer<typeof calendarEventSchema>;

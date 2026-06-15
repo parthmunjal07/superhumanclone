@@ -29,7 +29,7 @@ export function DisconnectButton({ integration, label }: { integration: string; 
     <button
       onClick={handleDisconnect}
       disabled={loading}
-      className="px-4 py-2 bg-red-500/10 text-red-500 font-medium rounded-md hover:bg-red-500/20 transition-colors disabled:opacity-50"
+      className="inline-flex items-center justify-center px-6 py-2.5 bg-[#FECDD3] text-[#881337] border border-[#FDA4AF] text-[15px] font-semibold rounded-full hover:bg-[#FDA4AF] transition-colors shadow-sm disabled:opacity-50"
     >
       {loading ? 'Disconnecting...' : `Disconnect ${label}`}
     </button>

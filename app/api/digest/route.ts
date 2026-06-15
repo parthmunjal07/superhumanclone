@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
     // 1. Check Redis
     const cached = await redis.get(cacheKey);
-    if (cached) {
+    if (cached && cached !== "null") {
       return NextResponse.json(JSON.parse(cached));
     }
 
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
-    if (dbDigest && dbDigest.date.toISOString().startsWith(today)) {
+    if (dbDigest && dbDigest.date.toISOString().startsWith(today) && dbDigest.summary !== "null") {
       // Re-populate redis
       await redis.set(cacheKey, dbDigest.summary, 'EX', 86400 * 2);
       return NextResponse.json(JSON.parse(dbDigest.summary));

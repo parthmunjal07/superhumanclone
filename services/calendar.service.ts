@@ -31,7 +31,8 @@ export class CalendarService {
         status: e.status || 'confirmed',
         attendees: e.attendees || [],
         htmlLink: e.htmlLink || '',
-        colorId: e.colorId || null
+        colorId: e.colorId || null,
+        hangoutLink: e.hangoutLink || ''
       }));
     } catch (err: any) {
       console.error("[CalendarService] Failed to fetch events:", err.message);
@@ -45,6 +46,7 @@ export class CalendarService {
       const result = await t.run<any>('googlecalendar.api.events.create', {
         calendarId: 'primary',
         sendUpdates: 'all',
+        ...(data.addMeetLink ? { conferenceDataVersion: 1 } : {}),
         requestBody: {
           summary: data.title,
           description: data.description || '',
@@ -53,7 +55,15 @@ export class CalendarService {
           end: { dateTime: data.end },
           attendees: data.attendees?.map((email: string) => ({ email })) || [],
           ...(data.colorId ? { colorId: data.colorId } : {}),
-          ...(data.recurrence ? { recurrence: data.recurrence } : {})
+          ...(data.recurrence ? { recurrence: data.recurrence } : {}),
+          ...(data.addMeetLink ? {
+            conferenceData: {
+              createRequest: {
+                requestId: Math.random().toString(36).substring(2, 15) + Date.now().toString(36),
+                conferenceSolutionKey: { type: 'hangoutsMeet' }
+              }
+            }
+          } : {})
         }
       });
       if (!result.success) throw new Error("Corsair auth failed");
@@ -71,6 +81,7 @@ export class CalendarService {
         calendarId: 'primary',
         eventId: eventId,
         sendUpdates: 'all',
+        ...(data.addMeetLink ? { conferenceDataVersion: 1 } : {}),
         requestBody: {
           summary: data.title,
           description: data.description || '',
@@ -79,7 +90,15 @@ export class CalendarService {
           end: { dateTime: data.end },
           attendees: data.attendees?.map((email: string) => ({ email })) || [],
           ...(data.colorId ? { colorId: data.colorId } : {}),
-          ...(data.recurrence ? { recurrence: data.recurrence } : {})
+          ...(data.recurrence ? { recurrence: data.recurrence } : {}),
+          ...(data.addMeetLink ? {
+            conferenceData: {
+              createRequest: {
+                requestId: Math.random().toString(36).substring(2, 15) + Date.now().toString(36),
+                conferenceSolutionKey: { type: 'hangoutsMeet' }
+              }
+            }
+          } : {})
         }
       });
       if (!result.success) throw new Error("Corsair auth failed");

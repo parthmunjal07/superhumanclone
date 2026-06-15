@@ -1,9 +1,11 @@
 import { NextRequest } from 'next/server';
 import { streamText, convertToModelMessages, stepCountIs } from 'ai';
+import { createMCPClient } from '@ai-sdk/mcp';
 import { openrouter } from '@/lib/ai';
 import { getCorsairClient } from '@/lib/corsair';
 import { prisma } from '@/lib/prisma';
 import { getRefreshTokenCookie, verifyToken } from '@/lib/auth';
+import { redis } from '@/lib/redis';
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,8 +20,7 @@ export async function POST(req: NextRequest) {
     const coreMessages = await convertToModelMessages(messages);
 
     // Try to get the current authenticated user
-    let user = await prisma.user.findFirst(); // HARDCODED FOR TESTING
-    /*
+    let user = null;
     const token = await getRefreshTokenCookie();
     if (token) {
       const payload = verifyToken(token);
@@ -27,7 +28,17 @@ export async function POST(req: NextRequest) {
         user = await prisma.user.findUnique({ where: { id: payload.userId } });
       }
     }
-    */
+
+    // Rate Limiting (10 requests per minute per user/IP)
+    const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+    const rateLimitKey = `ratelimit:chat:${user ? user.id : ip}`;
+    const requests = await redis.incr(rateLimitKey);
+    if (requests === 1) {
+      await redis.expire(rateLimitKey, 60);
+    }
+    if (requests > 10) {
+      return new Response(JSON.stringify({ error: 'Too many requests' }), { status: 429 });
+    }
 
     // Prepare system prompt parameters
     const userName = user?.name || 'User';
@@ -58,15 +69,15 @@ Never invent information if you can use a tool to fetch it.`;
       }
     }
 
-    const result = await streamText({
-      model: openrouter('anthropic/claude-3-haiku'),
+    const result = streamText({
+      model: openrouter('openrouter/free'),
       system: systemPrompt,
       messages: coreMessages,
       tools,
       stopWhen: stepCountIs(5),
     });
 
-    return result.toUIMessageStreamResponse();
+    return result.toTextStreamResponse();
   } catch (error) {
     console.error('API Agent route error:', error);
     return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500 });

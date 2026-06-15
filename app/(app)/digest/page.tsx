@@ -1,286 +1,220 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { 
-  RefreshCw, 
-  Clock, 
-  Zap,
-  Sparkles
-} from 'lucide-react';
+import React, { useState } from 'react';
+import useSWR from 'swr';
+import { format } from 'date-fns';
+import { RefreshCcw, CheckCircle2, Clock, Calendar, MessageSquare, AlertCircle, PlayCircle, Loader2 } from 'lucide-react';
 
-const mockDigestData = {
-  focusSuggestion: "Your top priority today is signing off on the Q3 roadmap. Marcus and the eng team are blocked.",
-  meetings: [
-    { 
-      id: 1, 
-      title: "Q3 Roadmap Review", 
-      time: "10:00 - 10:45 AM", 
-      attendees: ["MC", "JP", "EM"],
-      color: "cyan",
-      notes: [
-        "Marcus needs approval on the revised launch milestones.",
-        "Engineering is blocked on budget reallocation.",
-        "Confirm whether the mobile launch date stays Aug 15."
-      ]
-    },
-    { 
-      id: 2, 
-      title: "Design Critique Sync", 
-      time: "1:30 - 2:00 PM", 
-      attendees: ["SP", "AR"],
-      color: "amber",
-      notes: [
-        "Tentative until Priya confirms the revised deck.",
-        "Review onboarding flow feedback and open questions.",
-        "Bring the latest mobile mockups for comparison."
-      ]
-    },
-    { 
-      id: 3, 
-      title: "Weekly Staff Meeting", 
-      time: "4:00 - 4:30 PM", 
-      attendees: ["EM", "MC", "LN"],
-      color: "cyan",
-      notes: [
-        "Prepare a concise update on roadmap sign-off.",
-        "Highlight any blockers from the eng team.",
-        "Share the digest summary with the group."
-      ]
-    }
-  ],
-  actionItems: [
-    { id: 1, text: "Approve Q3 roadmap milestones", type: "reply", from: "Marcus Chen" },
-    { id: 2, text: "Decide on mobile launch date", type: "decide", from: "Engineering" },
-    { id: 3, text: "Delegate QA budget reallocation", type: "delegate", from: "Priya Patel" },
-    { id: 4, text: "Reply to weekly digest thread", type: "reply", from: "Notion" }
-  ],
-  waitingOn: [
-    { id: 1, initials: "MC", name: "Marcus Chen", text: "Waiting for approval on the revised roadmap.", sent: "2D AGO" },
-    { id: 2, initials: "PR", name: "Priya Patel", text: "Needs confirmation on the design review timing.", sent: "6H AGO" },
-    { id: 3, initials: "LN", name: "Linear", text: "Issue status update pending from the eng team.", sent: "1D AGO" }
-  ],
-  fyi: [
-    { id: 1, title: "Notion", text: "Weekly workspace digest" },
-    { id: 2, title: "GitHub", text: "PR #482 was merged" },
-    { id: 3, title: "Figma", text: "New comments on onboarding flow" }
-  ]
-};
-
-const getActionBadgeStyle = (type: string) => {
-  switch (type) {
-    case 'reply': return 'bg-[#111f3d]/50 text-blue-400 border border-blue-500/10';
-    case 'decide': return 'bg-[#1d1136]/50 text-amber-500 border border-amber-500/10'; // In screenshot "DECIDE" is yellow/amber
-    case 'delegate': return 'bg-[#0c2323]/50 text-emerald-400 border border-emerald-500/10';
-    default: return 'bg-zinc-800 text-zinc-400';
-  }
-};
+const fetcher = (url: string) => fetch(url).then(r => {
+  if (!r.ok) throw new Error("Failed to fetch digest");
+  return r.json();
+});
 
 export default function DigestPage() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [data, setData] = useState<any>(null); // any type for simplicity
+  const { data, error, isLoading, mutate } = useSWR('/api/digest', fetcher);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
-  const fetchDigest = async () => {
-    setIsLoading(true);
+  const handleRegenerate = async () => {
+    setIsRegenerating(true);
     try {
-      const res = await fetch('/api/digest');
-      if (res.ok) {
-        const json = await res.json();
-        setData(json);
-      }
-    } catch (error) {
-      console.error('Failed to fetch digest:', error);
+      await fetch('/api/digest', { method: 'POST' });
+      await mutate();
+    } catch (e) {
+      console.error(e);
     } finally {
-      setIsLoading(false);
+      setIsRegenerating(false);
     }
   };
 
-  const regenerateDigest = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch('/api/digest', { method: 'POST' });
-      if (res.ok) {
-        const json = await res.json();
-        setData(json);
-      }
-    } catch (error) {
-      console.error('Failed to regenerate digest:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const todayStr = format(new Date(), 'EEEE, MMMM do');
 
-  useEffect(() => {
-    fetchDigest();
-  }, []);
+  // Loading State
+  if (isLoading || !data) {
+    return (
+      <div className="flex-1 bg-[#F9FAFB] h-full overflow-y-auto p-8 lg:p-12">
+        <div className="max-w-6xl mx-auto space-y-8 animate-pulse">
+          <div className="h-10 w-48 bg-zinc-200 rounded-lg"></div>
+          <div className="h-24 w-full bg-zinc-200 rounded-2xl"></div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 h-[400px] bg-zinc-200 rounded-3xl"></div>
+            <div className="space-y-6">
+              <div className="h-[200px] bg-zinc-200 rounded-3xl"></div>
+              <div className="h-[200px] bg-zinc-200 rounded-3xl"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  if (error) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center bg-[#F9FAFB] h-full">
+        <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
+        <h2 className="text-xl font-semibold text-zinc-900 mb-2">Digest Unavailable</h2>
+        <p className="text-zinc-500 mb-6">We couldn't load your morning digest.</p>
+        <button onClick={() => mutate()} className="px-6 py-2 bg-zinc-900 text-white rounded-xl font-medium shadow-sm hover:bg-zinc-800 transition">
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  const { focusSuggestion, actionItems, meetings, waitingOn, fyi } = data;
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#0a0a0a] text-white">
-      <div className="max-w-[1100px] mx-auto py-12 px-10">
+    <div className="flex-1 bg-[#F9FAFB] h-full overflow-y-auto font-sans">
+      <div className="max-w-6xl mx-auto px-6 py-10 lg:px-12 lg:py-16 space-y-10">
         
         {/* Header */}
-        <div className="flex items-start justify-between mb-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h2 className="text-[10px] font-bold tracking-[0.25em] text-zinc-500 uppercase mb-2">Morning Digest</h2>
-            <h1 className="text-[34px] font-bold text-white tracking-tight leading-none">{todayStr}</h1>
+            <p className="text-zinc-400 font-bold tracking-widest text-[11px] uppercase mb-1.5">{todayStr}</p>
+            <h1 className="text-[22px] font-semibold text-zinc-900 tracking-tight">Morning Brief</h1>
           </div>
-          
           <button 
-            onClick={regenerateDigest}
-            disabled={isLoading}
-            className="flex items-center gap-2 bg-transparent hover:bg-white/5 border border-[#333] px-4 py-2 rounded-full text-[13px] font-medium text-white transition-colors disabled:opacity-50"
+            onClick={handleRegenerate}
+            disabled={isRegenerating}
+            className="flex items-center gap-2 px-5 py-2.5 bg-white border border-zinc-200 text-zinc-700 text-sm font-semibold rounded-full shadow-sm hover:bg-zinc-50 transition-colors disabled:opacity-50"
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Regenerate
+            {isRegenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCcw className="w-3.5 h-3.5" />}
+            {isRegenerating ? 'Generating...' : 'Refresh Digest'}
           </button>
         </div>
 
-        <div className="h-px bg-[#222] w-full mb-8" />
-
-        {isLoading ? (
-          <div className="space-y-8 animate-pulse">
-            <div className="h-20 bg-[#151515] rounded-xl border border-[#222]"></div>
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8">
-              <div className="space-y-4">
-                <div className="h-4 w-32 bg-white/10 rounded mb-6"></div>
-                <div className="h-48 bg-[#111] rounded-xl border border-[#222]"></div>
-                <div className="h-48 bg-[#111] rounded-xl border border-[#222]"></div>
-              </div>
-              <div className="space-y-4">
-                <div className="h-4 w-32 bg-white/10 rounded mb-6"></div>
-                <div className="h-32 bg-[#111] rounded-xl border border-[#222]"></div>
-                <div className="h-32 bg-[#111] rounded-xl border border-[#222]"></div>
-              </div>
-            </div>
-          </div>
-        ) : data && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            
-            {/* Focus Suggestion */}
-            <div className="bg-[#1a140a] border border-[#3a2a11] rounded-xl p-5 flex items-start gap-4">
-              <Zap className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-              <div className="flex-1 text-[14px] text-zinc-400 leading-relaxed">
-                <strong className="text-white font-semibold">Focus suggestion:</strong> {data.focusSuggestion}
-              </div>
-              <button className="border border-[#3a2a11] hover:bg-[#2b1f10] px-4 py-1.5 rounded-lg text-[12px] text-zinc-400 transition-colors">
-                Dismiss
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-10">
-              {/* Left Column */}
-              <div className="space-y-10">
-                
-                {/* Today's Meetings */}
-                <section>
-                  <h3 className="text-[11px] font-bold tracking-[0.2em] text-zinc-500 uppercase mb-5">Today's Meetings</h3>
-                  <div className="space-y-4">
-                    {data.meetings.map((meeting: any) => (
-                      <div key={meeting.id} className="relative bg-[#111] border border-[#222] rounded-xl p-5 overflow-hidden">
-                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${meeting.color === 'cyan' ? 'bg-cyan-400' : 'bg-amber-400'}`} />
-                        
-                        <div className="flex justify-between items-start mb-5 pl-2">
-                          <div>
-                            <h4 className="text-[16px] font-bold text-white mb-1.5">{meeting.title}</h4>
-                            <p className="text-[11px] font-mono tracking-widest text-zinc-500 uppercase">{meeting.time}</p>
-                          </div>
-                          <div className="flex items-center -space-x-1">
-                            {meeting.attendees?.map((att: any, i: number) => (
-                              <div key={i} className="w-[22px] h-[22px] rounded-full bg-[#222] border border-[#111] flex items-center justify-center text-[8px] font-bold text-zinc-300">
-                                {att}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        <div className="pl-2">
-                          <div className="flex items-center gap-2 mb-3">
-                            <Sparkles className="w-4 h-4 text-cyan-400" />
-                            <span className="text-[12px] font-medium text-zinc-400">AI Prep Notes</span>
-                          </div>
-                          <ul className="space-y-2.5">
-                            {meeting.notes?.map((note: any, i: number) => (
-                              <li key={i} className="flex items-start gap-3 text-[13px] text-zinc-300">
-                                <div className="w-1 h-1 rounded-full bg-zinc-600 mt-2 shrink-0" />
-                                <span className="leading-relaxed">{note}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-
-                {/* Action Items */}
-                <section>
-                  <h3 className="text-[11px] font-bold tracking-[0.2em] text-zinc-500 uppercase mb-5">Action Items</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {data.actionItems.map((item: any) => (
-                      <div key={item.id} className="bg-[#111] border border-[#222] rounded-xl p-5 flex flex-col justify-between min-h-[140px]">
-                        <div className="flex justify-between items-start gap-4">
-                          <p className="text-[14px] font-medium text-white leading-snug">{item.text}</p>
-                          <div className={`text-[8px] font-bold tracking-[0.15em] uppercase px-2 py-1 rounded shrink-0 mt-0.5 ${getActionBadgeStyle(item.type)}`}>
-                            {item.type}
-                          </div>
-                        </div>
-                        <p className="text-[12px] text-zinc-500 mt-6">From {item.from}</p>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-
-              </div>
-
-              {/* Right Column */}
-              <div className="space-y-10">
-                
-                {/* Waiting On */}
-                <section>
-                  <h3 className="text-[11px] font-bold tracking-[0.2em] text-zinc-500 uppercase mb-5">Waiting On</h3>
-                  <div className="space-y-4">
-                    {data.waitingOn.map((item: any) => (
-                      <div key={item.id} className="bg-[#111] border border-[#222] rounded-xl p-5">
-                        <div className="flex items-center gap-3 mb-3">
-                          <Clock className="w-4 h-4 text-zinc-500 shrink-0" />
-                          <div className="w-[22px] h-[22px] rounded-full bg-[#222] flex items-center justify-center text-[9px] font-bold text-zinc-300 shrink-0">
-                            {item.initials}
-                          </div>
-                          <span className="text-[13px] font-semibold text-white">{item.name}</span>
-                        </div>
-                        <p className="text-[13px] text-zinc-400 leading-relaxed pl-11 mb-4">{item.text}</p>
-                        <div className="pl-11 text-[9px] font-mono font-bold tracking-[0.2em] text-zinc-600 uppercase">
-                          Sent {item.sent}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-
-                {/* FYI / Reading */}
-                <section>
-                  <h3 className="text-[11px] font-bold tracking-[0.2em] text-zinc-500 uppercase mb-5">FYI / Reading</h3>
-                  <div className="space-y-3">
-                    {data.fyi.map((item: any) => (
-                      <div key={item.id} className="bg-[#111] border border-[#222] rounded-xl p-4 flex items-center justify-between gap-4">
-                        <div>
-                          <h4 className="text-[13px] font-semibold text-white mb-0.5">{item.title}</h4>
-                          <p className="text-[12px] text-zinc-500 line-clamp-1">{item.text}</p>
-                        </div>
-                        <div className="text-[9px] font-bold tracking-[0.15em] text-zinc-500 bg-[#1a1a1a] border border-[#2a2a2a] px-2.5 py-1 rounded shrink-0">
-                          FYI
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-
-              </div>
-            </div>
-
+        {/* Hero: Focus Suggestion */}
+        {focusSuggestion && (
+          <div className="bg-white border border-zinc-200 p-6 rounded-2xl shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-400"></div>
+            <p className="text-zinc-400 text-[11px] font-bold uppercase tracking-widest mb-3 flex items-center gap-1.5">
+              <PlayCircle className="w-3.5 h-3.5 text-emerald-500" /> Today's Primary Focus
+            </p>
+            <h2 className="text-[17px] font-medium text-zinc-900 leading-snug tracking-tight">
+              {focusSuggestion}
+            </h2>
           </div>
         )}
+
+        {/* Bento Grid Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Main Column: Action Items */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle2 className="w-4 h-4 text-zinc-900" />
+              <h3 className="text-[14px] font-semibold text-zinc-900">Action Items</h3>
+            </div>
+            
+            {(!actionItems || actionItems.length === 0) ? (
+              <div className="bg-white border border-zinc-100 rounded-2xl p-6 text-center text-[13px] text-zinc-500">
+                You're all caught up. No pending action items!
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {actionItems.map((item: any, idx: number) => {
+                  let badgeStyle = "bg-zinc-100 text-zinc-600";
+                  if (item.type === 'reply') badgeStyle = "bg-[#CBE4FF] text-[#1E4C82]";
+                  if (item.type === 'decide') badgeStyle = "bg-[#E3D1FE] text-[#482881]";
+                  if (item.type === 'delegate') badgeStyle = "bg-[#FFE2D1] text-[#85451C]";
+
+                  return (
+                    <div key={idx} className="bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow group">
+                      <div className="flex items-start justify-between gap-4 mb-2.5">
+                        <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded-md ${badgeStyle}`}>
+                          {item.type}
+                        </span>
+                      </div>
+                      <h4 className="text-zinc-900 font-medium text-[14px] mb-1.5 leading-snug group-hover:text-blue-600 transition-colors">
+                        {item.text}
+                      </h4>
+                      <p className="text-zinc-500 text-[13px]">
+                        From: {item.from}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Stacked Bento Cards */}
+          <div className="space-y-8">
+            
+            {/* Meetings Prep */}
+            <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm">
+              <div className="flex items-center gap-2 mb-5">
+                <Calendar className="w-4 h-4 text-zinc-900" />
+                <h3 className="text-[14px] font-semibold text-zinc-900">Upcoming Meetings</h3>
+              </div>
+              
+              {(!meetings || meetings.length === 0) ? (
+                <p className="text-zinc-500 text-[13px]">No meetings requiring prep today.</p>
+              ) : (
+                <div className="space-y-5">
+                  {meetings.map((m: any, i: number) => (
+                    <div key={i} className="border-l-[3px] border-zinc-200 pl-3 py-0.5">
+                      <h4 className="text-[14px] font-medium text-zinc-900 leading-tight mb-0.5">{m.title}</h4>
+                      {m.time && <p className="text-[12px] text-zinc-500 mb-1.5">{m.time} {m.attendees?.length > 0 && `• ${m.attendees.join(', ')}`}</p>}
+                      {m.notes && m.notes.length > 0 && (
+                        <ul className="text-[13px] text-zinc-600 leading-relaxed list-disc list-inside">
+                          {m.notes.map((n: string, idx: number) => <li key={idx}>{n}</li>)}
+                        </ul>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Waiting On */}
+            <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm">
+              <div className="flex items-center gap-2 mb-5">
+                <Clock className="w-4 h-4 text-amber-500" />
+                <h3 className="text-[14px] font-semibold text-zinc-900">Waiting On</h3>
+              </div>
+              
+              {(!waitingOn || waitingOn.length === 0) ? (
+                <p className="text-zinc-500 text-[13px]">Nothing pending from others.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {waitingOn.map((w: any, i: number) => (
+                    <li key={i} className="flex items-start gap-2.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0" />
+                      <div>
+                        <span className="text-[13px] font-medium text-zinc-900">{w.name}</span>
+                        {w.sent && <span className="text-[11px] text-zinc-400 ml-2">{w.sent}</span>}
+                        <p className="text-[13px] text-zinc-600 leading-snug mt-0.5">{w.text}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* FYI */}
+            <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm">
+              <div className="flex items-center gap-2 mb-5">
+                <MessageSquare className="w-4 h-4 text-blue-500" />
+                <h3 className="text-[14px] font-semibold text-zinc-900">FYI</h3>
+              </div>
+              
+              {(!fyi || fyi.length === 0) ? (
+                <p className="text-zinc-500 text-[13px]">No recent FYI notices.</p>
+              ) : (
+                <ul className="space-y-4">
+                  {fyi.map((note: any, i: number) => (
+                    <li key={i} className="bg-zinc-50/80 p-3.5 rounded-xl border border-zinc-100">
+                      <h4 className="text-[13px] font-medium text-zinc-900 mb-0.5">{note.title}</h4>
+                      <p className="text-[13px] text-zinc-600 leading-relaxed">{note.text}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+          </div>
+
+        </div>
       </div>
     </div>
   );

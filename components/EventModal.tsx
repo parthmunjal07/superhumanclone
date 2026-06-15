@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Clock, MapPin, Users, AlignLeft, AlertCircle } from 'lucide-react';
+import { X, Clock, MapPin, Users, AlignLeft, AlertCircle, Video } from 'lucide-react';
 import { format, addHours, parseISO } from 'date-fns';
 
 interface EventModalProps {
@@ -19,6 +19,7 @@ export function EventModal({ isOpen, onClose, event, defaultStart, onSave }: Eve
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
   const [attendees, setAttendees] = useState('');
+  const [addMeetLink, setAddMeetLink] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [freeBusyData, setFreeBusyData] = useState<any>(null);
@@ -33,6 +34,7 @@ export function EventModal({ isOpen, onClose, event, defaultStart, onSave }: Eve
         setLocation(event.location || '');
         setDescription(event.description || '');
         setAttendees(event.attendees ? event.attendees.map((a: any) => a.email).join(', ') : '');
+        setAddMeetLink(!!event.hangoutLink);
       } else {
         const startDate = defaultStart ? new Date(defaultStart) : new Date();
         const endDate = addHours(startDate, 1);
@@ -42,6 +44,7 @@ export function EventModal({ isOpen, onClose, event, defaultStart, onSave }: Eve
         setLocation('');
         setDescription('');
         setAttendees('');
+        setAddMeetLink(false);
       }
       setError('');
       setFreeBusyData(null);
@@ -96,6 +99,7 @@ export function EventModal({ isOpen, onClose, event, defaultStart, onSave }: Eve
         location,
         description,
         attendees: attendees.split(',').map(e => e.trim()).filter(e => e && e.includes('@')),
+        addMeetLink,
         ...(event?.id ? { eventId: event.id } : {})
       };
 
@@ -180,7 +184,7 @@ export function EventModal({ isOpen, onClose, event, defaultStart, onSave }: Eve
 
             <div>
               <label className="flex items-center gap-2 text-xs font-medium text-zinc-400 mb-1.5">
-                <Users className="w-3.5 h-3.5" /> Attendees
+                <Users className="w-3.5 h-3.5" /> Attendees <span className="text-[10px] text-zinc-500 font-normal ml-1">(Will receive an email with the Meet link)</span>
               </label>
               <input
                 type="text"
@@ -206,6 +210,30 @@ export function EventModal({ isOpen, onClose, event, defaultStart, onSave }: Eve
                   Everyone is free!
                 </div>
               ) : null}
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-lg border border-zinc-800 bg-zinc-900/50">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center">
+                  <Video className="w-4 h-4 text-indigo-400" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-white">Google Meet</div>
+                  {event?.hangoutLink ? (
+                    <a href={event.hangoutLink} target="_blank" rel="noreferrer" className="text-[11px] text-indigo-400 hover:underline">
+                      {event.hangoutLink}
+                    </a>
+                  ) : (
+                    <div className="text-[11px] text-zinc-500">Add video conferencing</div>
+                  )}
+                </div>
+              </div>
+              {!event?.hangoutLink && (
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" className="sr-only peer" checked={addMeetLink} onChange={e => setAddMeetLink(e.target.checked)} />
+                  <div className="w-9 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 peer-checked:after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500"></div>
+                </label>
+              )}
             </div>
 
             <div>

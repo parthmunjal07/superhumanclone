@@ -1,18 +1,17 @@
 import { prisma } from '@/lib/prisma';
 import { redis } from '@/lib/redis';
-import { generateText } from 'ai';
-import { openrouter } from '@/lib/ai';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+import { openrouter, sanitizeLongText } from '@/lib/ai';
+import { EmailService } from '@/services/email.service';
 
 export async function generateDigestForUser(userId: string) {
   try {
-    const recentEmails = await prisma.email.findMany({
-      where: { userId },
-      orderBy: { date: 'desc' },
-      take: 20, // Limit for prompt size
-    });
+    const listResult = await EmailService.getEmails(userId, 20);
+    const recentEmails = listResult.emails || [];
 
     const emailContext = recentEmails
-      .map((e) => `From: ${e.from}\nSubject: ${e.subject}\nBody Snippet: ${e.body.substring(0, 150)}`)
+      .map((e: any) => `From: ${e.from}\nSubject: ${e.subject}\nBody Snippet: ${sanitizeLongText(e.body || e.snippet || '', 150)}`)
       .join('\n\n');
 
     const prompt = `Analyze the following recent emails for the user's upcoming day.
@@ -29,33 +28,56 @@ ${emailContext}
 
 Output ONLY valid JSON with no markdown wrapping. Do not include markdown code block syntax like \`\`\`json.`;
 
-    const { text } = await generateText({
-      model: openrouter('anthropic/claude-3.5-sonnet'),
+    const { object: parsed } = await generateObject({
+      model: openrouter('openrouter/free'),
+      maxTokens: 2048,
       prompt,
-      maxTokens: 1500,
-    } as any);
+      schema: z.object({
+        meetings: z.array(z.object({
+          id: z.number(),
+          title: z.string(),
+          time: z.string(),
+          attendees: z.array(z.string()),
+          color: z.enum(['cyan', 'amber', 'purple', 'blue', 'green', 'rose', 'blue', 'pink', 'orange', 'teal', 'emerald', 'fuchsia', 'slate']).optional().default('cyan'),
+          notes: z.array(z.string())
+        })).optional().default([]),
+        actionItems: z.array(z.object({
+          id: z.number(),
+          text: z.string(),
+          type: z.enum(['reply', 'decide', 'delegate']),
+          from: z.string()
+        })).optional().default([]),
+        waitingOn: z.array(z.object({
+          id: z.number(),
+          initials: z.string(),
+          name: z.string(),
+          text: z.string(),
+          sent: z.string()
+        })).optional().default([]),
+        fyi: z.array(z.object({
+          id: z.number(),
+          title: z.string(),
+          text: z.string()
+        })).optional().default([]),
+        focusSuggestion: z.string().optional().default("Focus on clearing your inbox today.")
+      })
+    });
 
     const today = new Date().toISOString().split('T')[0];
     const cacheKey = `user:${userId}:digest:${today}`;
 
-    try {
-      const parsed = JSON.parse(text);
-      // Cache in Redis for quick retrieval (48 hours)
-      await redis.set(cacheKey, JSON.stringify(parsed), 'EX', 86400 * 2);
+    // Cache in Redis for quick retrieval (48 hours)
+    await redis.set(cacheKey, JSON.stringify(parsed), 'EX', 86400 * 2);
 
-      // Persist in Postgres
-      await prisma.digestCache.create({
-        data: {
-          userId,
-          date: new Date(),
-          summary: JSON.stringify(parsed),
-        },
-      });
-      return parsed;
-    } catch (parseError) {
-      console.warn('Failed to parse Claude response as JSON', parseError);
-      return null;
-    }
+    // Persist in Postgres
+    await prisma.digestCache.create({
+      data: {
+        userId,
+        date: new Date(),
+        summary: JSON.stringify(parsed),
+      },
+    });
+    return parsed;
   } catch (error) {
     console.error(`Error generating digest for user ${userId}:`, error);
     return null;

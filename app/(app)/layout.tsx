@@ -9,7 +9,7 @@ export default function AppLayout({
 }) {
   return (
     <ProtectedRoute>
-      <div className="flex h-screen w-full overflow-hidden bg-[#111] text-white">
+      <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
         {/* Pane 1: Sidebar */}
         <Sidebar />
         

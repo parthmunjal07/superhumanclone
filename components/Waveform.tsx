@@ -8,7 +8,7 @@ export function Waveform({ active }: { active: boolean }) {
       {[1, 2, 3, 4].map((i) => (
         <div
           key={i}
-          className="w-1 bg-indigo-500 rounded-full animate-pulse"
+          className="w-1 bg-blue-500 rounded-full animate-pulse"
           style={{
             height: `${Math.max(4, Math.random() * 16)}px`,
             animationDelay: `${i * 0.15}s`,

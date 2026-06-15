@@ -17,12 +17,11 @@ export function AgentChatUI({ onClose, isDocked = false }: { onClose?: () => voi
   
   const { messages, sendMessage, status } = useChat({
     api: '/api/chat',
-    initialMessages: [], // Strict React state, no localStorage
+    initialMessages: [], 
   });
 
   const isLoading = status === 'submitted' || status === 'streaming' || status === 'generating';
 
-  // Sync voice transcript to input
   useEffect(() => {
     if (transcript) {
       setInput(transcript);
@@ -40,86 +39,76 @@ export function AgentChatUI({ onClose, isDocked = false }: { onClose?: () => voi
     setInput('');
   };
 
-  // Global shortcut ⌘K to focus input, ⌘V to toggle voice
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        inputRef.current?.focus();
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'v') {
-        e.preventDefault();
-        toggleListening();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [toggleListening]);
+  // Keyboard shortcuts (ctrl+v/k) were intentionally removed per user request to avoid conflicts.
 
   return (
-    <div className={`flex flex-col bg-[#0a0a0a] shadow-2xl overflow-hidden ${isDocked ? 'h-[600px] w-[500px] rounded-t-xl sm:rounded-xl border border-[#222]' : 'h-full w-full'}`}>
+    <div className={`flex flex-col bg-white overflow-hidden font-sans ${isDocked ? 'h-[600px] w-[500px] rounded-t-3xl sm:rounded-3xl shadow-2xl border border-zinc-200/60' : 'h-full w-full'}`}>
 
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-[#222] bg-[#0a0a0a] shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-blue-600/10 border border-blue-500/20 flex items-center justify-center">
-            <Bot className="w-4 h-4 text-blue-500" />
+      <div className="flex items-center justify-between p-5 border-b border-zinc-100 bg-white shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-2xl bg-[#CBE4FF] flex items-center justify-center shrink-0">
+            <Bot className="w-5 h-5 text-[#1E4C82]" />
           </div>
           <div>
-            <h2 className="text-[13px] font-bold text-white leading-tight">Agent</h2>
+            <h2 className="text-[16px] font-bold text-zinc-900 leading-tight">Corsair Agent</h2>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
-              <span className="text-[9px] font-mono tracking-widest text-emerald-400 uppercase">Active · MCP Enabled</span>
+              <div className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="text-[11px] font-bold tracking-widest text-emerald-600 uppercase">Online</span>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {!isDocked && (
-            <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-[#111] border border-[#222] hover:bg-[#1a1a1a] text-[9px] font-mono tracking-widest text-zinc-400 uppercase transition-colors">
+            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-50 border border-zinc-200 hover:bg-zinc-100 text-[11px] font-bold tracking-widest text-zinc-600 uppercase transition-colors">
               <Maximize2 className="w-3 h-3" /> Expand
             </button>
           )}
           {isDocked && (
-            <button onClick={onClose} className="p-1.5 rounded hover:bg-[#111] text-zinc-500 hover:text-white transition-colors">
-              <X className="w-4 h-4" />
+            <button onClick={onClose} className="p-2 rounded-full hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 transition-colors">
+              <X className="w-5 h-5" />
             </button>
           )}
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-8">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#F9FAFB]">
         {messages.length === 0 && (
-          <div className="flex items-center justify-center h-full text-zinc-500 text-sm">
-            How can I help you today?
+          <div className="flex flex-col items-center justify-center h-full text-zinc-400 space-y-4">
+            <Bot className="w-12 h-12 text-zinc-200" />
+            <p className="text-sm font-medium">How can I help you today?</p>
           </div>
         )}
 
         {messages.map((m: any) => (
-          <div key={m.id} className="flex gap-4">
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${m.role === 'user' ? 'bg-[#1a1a1a] border border-[#2a2a2a]' : 'bg-blue-600/10 border border-blue-500/20'}`}>
-              {m.role === 'user' ? <User className="w-3.5 h-3.5 text-zinc-500" /> : <Bot className="w-3.5 h-3.5 text-blue-500" />}
+          <div key={m.id} className="flex gap-4 max-w-full">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${m.role === 'user' ? 'bg-zinc-200' : 'bg-[#CBE4FF]'}`}>
+              {m.role === 'user' ? <User className="w-4 h-4 text-zinc-600" /> : <Bot className="w-4 h-4 text-[#1E4C82]" />}
             </div>
-            <div className="flex-1 space-y-2 min-w-0">
-              <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
+            
+            <div className="flex-1 min-w-0 space-y-2">
+              <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
                 {m.role === 'user' ? 'You' : 'Agent'}
               </div>
               
               {m.content && m.content.length > 0 && (
-                <div className="bg-[#1a1a1a] border border-[#222] rounded-xl p-4 text-[13px] text-zinc-200 leading-relaxed whitespace-pre-wrap break-all">
+                <div className={`rounded-2xl p-4 text-[14px] leading-relaxed break-words shadow-sm ${m.role === 'user' ? 'bg-white border border-zinc-200 text-zinc-900' : 'bg-[#CBE4FF] border border-[#B4D7FF] text-[#1E4C82]'}`}>
                   {m.content}
                 </div>
               )}
+
               {(!m.content || m.content.length === 0) && m.parts && m.parts.map((p: any, i: number) => {
                 if (p.type === 'text' && p.text) {
                   return (
-                    <div key={i} className="bg-[#1a1a1a] border border-[#222] rounded-xl p-4 text-[13px] text-zinc-200 leading-relaxed whitespace-pre-wrap break-all mt-2">
+                    <div key={i} className={`rounded-2xl p-4 text-[14px] leading-relaxed break-words shadow-sm mt-2 ${m.role === 'user' ? 'bg-white border border-zinc-200 text-zinc-900' : 'bg-[#CBE4FF] border border-[#B4D7FF] text-[#1E4C82]'}`}>
                       {p.text}
                     </div>
                   );
                 }
                 return null;
               })}
+
               {/* MCP Action Log parsed from stream */}
               {(() => {
                 const tools = m.toolInvocations || (m.parts ? m.parts.filter((p: any) => p.type === 'tool-invocation' || p.type === 'dynamic-tool' || p.type === 'tool') : []);
@@ -134,17 +123,16 @@ export function AgentChatUI({ onClose, isDocked = false }: { onClose?: () => voi
 
         {isLoading && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
           <div className="flex gap-4">
-            <div className="w-7 h-7 rounded-full bg-blue-600/10 border border-blue-500/20 flex items-center justify-center shrink-0">
-              <Bot className="w-3.5 h-3.5 text-blue-500" />
+            <div className="w-8 h-8 rounded-full bg-[#CBE4FF] flex items-center justify-center shrink-0">
+              <Bot className="w-4 h-4 text-[#1E4C82]" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 pt-2">
-                <div className="flex items-end gap-0.5 h-2">
+                <div className="flex items-end gap-1 h-3">
                   {[1, 2, 3].map(i => (
-                    <div key={i} className="w-0.5 bg-blue-500 rounded-full h-full animate-pulse" style={{ animationDelay: `${i * 150}ms` }} />
+                    <div key={i} className="w-1 bg-[#1E4C82] rounded-full h-full animate-pulse opacity-60" style={{ animationDelay: `${i * 150}ms` }} />
                   ))}
                 </div>
-                <span className="text-[10px] font-mono text-zinc-500 tracking-wider">streaming...</span>
               </div>
             </div>
           </div>
@@ -152,39 +140,38 @@ export function AgentChatUI({ onClose, isDocked = false }: { onClose?: () => voi
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t border-[#222] bg-[#0a0a0a] shrink-0">
+      <div className="p-5 border-t border-zinc-100 bg-white shrink-0">
         {voiceState === 'listening' && (
           <div className="flex items-center gap-3 mb-3 px-2">
-            <div className="px-2.5 py-1 rounded bg-blue-500/10 border border-blue-500/20 flex items-center gap-2">
+            <div className="px-3 py-1.5 rounded-full bg-blue-50 flex items-center gap-2 border border-blue-100">
               <Waveform active={true} />
-              <span className="text-[9px] font-mono tracking-widest text-blue-400 uppercase">Listening</span>
+              <span className="text-[10px] font-bold tracking-widest text-blue-600 uppercase">Listening</span>
             </div>
-            <span className="text-[10px] font-mono text-zinc-500">Web Speech API active</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex items-center bg-[#111] border border-[#222] rounded-xl p-1.5 focus-within:border-[#444] transition-colors">
-          <div className="pl-3 pr-2 text-zinc-500 cursor-pointer hover:text-white transition-colors">
-            <Paperclip className="w-4 h-4" />
+        <form onSubmit={handleSubmit} className="flex items-center bg-zinc-50 border border-zinc-200 rounded-2xl p-2 focus-within:border-zinc-300 focus-within:bg-white focus-within:shadow-sm transition-all">
+          <div className="pl-3 pr-2 text-zinc-400 hover:text-zinc-600 transition-colors cursor-pointer shrink-0">
+            <Paperclip className="w-5 h-5" />
           </div>
           <input
             ref={inputRef}
             type="text"
             value={input}
             onChange={handleInputChange}
-            placeholder="Ask Agent anything... (⌘K to focus)"
-            className="flex-1 bg-transparent border-none focus:outline-none text-[13px] text-white px-2 placeholder:text-zinc-600"
+            placeholder="Ask Agent anything..."
+            className="flex-1 bg-transparent border-none focus:outline-none text-[15px] text-zinc-900 px-2 placeholder:text-zinc-400 min-w-0"
           />
-          <div className="flex items-center gap-1.5 pr-1">
+          <div className="flex items-center gap-2 pr-1 shrink-0">
             <button
               type="button"
               onClick={toggleListening}
-              className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-colors ${voiceState === 'listening' ? 'bg-red-500/10 border-red-500/20 text-red-500 hover:bg-red-500/20' : 'bg-[#1a1a1a] border-[#222] text-zinc-400 hover:text-white'}`}
+              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${voiceState === 'listening' ? 'bg-[#FECDD3] text-[#881337] hover:bg-[#FDA4AF]' : 'bg-transparent text-zinc-400 hover:bg-zinc-200 hover:text-zinc-700'}`}
             >
-              <Mic className="w-4 h-4" />
+              <Mic className="w-5 h-5" />
             </button>
-            <button type="submit" disabled={!input || input.trim() === ''} className="w-8 h-8 rounded-lg bg-[#e0e0e0] text-black flex items-center justify-center hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-              <ArrowUp className="w-4 h-4" />
+            <button type="submit" disabled={!input || input.trim() === ''} className="w-10 h-10 rounded-xl bg-zinc-900 text-white flex items-center justify-center hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+              <ArrowUp className="w-5 h-5" />
             </button>
           </div>
         </form>
@@ -197,19 +184,19 @@ function ActionLog({ toolInvocations }: { toolInvocations: any[] }) {
   const [logOpen, setLogOpen] = useState(false);
   
   return (
-    <div className="bg-[#111] border border-[#222] rounded-xl overflow-hidden mt-3">
+    <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden mt-3 shadow-sm">
       <button
         onClick={() => setLogOpen(!logOpen)}
-        className="w-full flex items-center justify-between p-3 bg-[#151515] hover:bg-[#1a1a1a] transition-colors"
+        className="w-full flex items-center justify-between p-4 bg-zinc-50 hover:bg-zinc-100 transition-colors"
       >
-        <div className="flex items-center gap-2 text-[10px] font-mono tracking-widest uppercase">
-          {logOpen ? <ChevronDown className="w-3 h-3 text-blue-500" /> : <ChevronRight className="w-3 h-3 text-blue-500" />}
-          <span className="text-blue-500">MCP Action Log</span>
-          <span className="text-zinc-600">· {toolInvocations.length} calls</span>
+        <div className="flex items-center gap-2 text-[11px] font-bold tracking-widest uppercase">
+          {logOpen ? <ChevronDown className="w-4 h-4 text-[#1E4C82]" /> : <ChevronRight className="w-4 h-4 text-[#1E4C82]" />}
+          <span className="text-[#1E4C82]">Action Log</span>
+          <span className="text-zinc-400">· {toolInvocations.length} calls</span>
         </div>
       </button>
       {logOpen && (
-        <div className="p-4 space-y-4 border-t border-[#222]">
+        <div className="p-4 space-y-4 border-t border-zinc-100 bg-white">
           {toolInvocations.map((tool, idx) => {
             const state = tool.state === 'output-available' || tool.state === 'result' ? 'result' : tool.state || 'running';
             const inputStr = JSON.stringify(tool.args || tool.input, null, 2);
@@ -232,15 +219,15 @@ function ActionLog({ toolInvocations }: { toolInvocations: any[] }) {
 
 function ToolCallItem({ name, state, input, output }: { name: string, state: string, input: string, output: string }) {
   return (
-    <div className="text-[11px] font-mono">
+    <div className="text-[12px] font-mono">
       <div className="flex items-center gap-2 mb-2">
-        <div className={`w-1.5 h-1.5 rounded-full ${state === 'result' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
-        <span className={`${state === 'result' ? 'text-emerald-400' : 'text-amber-400'} font-bold uppercase tracking-widest`}>Tool Call</span>
-        <span className="text-zinc-300">{name}</span>
+        <div className={`w-2 h-2 rounded-full ${state === 'result' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
+        <span className={`${state === 'result' ? 'text-emerald-600' : 'text-amber-600'} font-bold uppercase tracking-widest`}>Tool Call</span>
+        <span className="text-zinc-500 font-semibold">{name}</span>
       </div>
-      <div className="bg-[#151515] border border-[#222] rounded p-3 ml-3 space-y-2 overflow-x-auto">
-        <div><span className="text-amber-500">input:</span> <span className="text-zinc-300 whitespace-pre-wrap">{input}</span></div>
-        <div><span className="text-emerald-400">output:</span> <span className="text-zinc-300 whitespace-pre-wrap">{output}</span></div>
+      <div className="bg-zinc-50 border border-zinc-100 rounded-xl p-4 ml-4 space-y-3 overflow-x-auto">
+        <div><span className="text-amber-600 font-bold">Input:</span> <span className="text-zinc-700 whitespace-pre-wrap">{input}</span></div>
+        <div><span className="text-emerald-600 font-bold">Output:</span> <span className="text-zinc-700 whitespace-pre-wrap">{output}</span></div>
       </div>
     </div>
   );

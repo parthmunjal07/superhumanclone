@@ -23,7 +23,7 @@ export class EmailService {
         pageToken: cursor || undefined,
         // Optional: pre-filter by view here using Gmail query syntax, e.g. q: 'in:inbox'
         // For simplicity we will filter locally or via q param
-        q: view === 'SENT' ? 'in:sent' : view === 'SPAM' ? 'in:spam' : 'in:inbox'
+        q: view === 'SENT' ? 'in:sent' : view === 'SPAM' ? 'in:spam' : view === 'ARCHIVED' ? '-in:inbox -in:trash -in:spam' : 'in:inbox'
       });
 
       if (!listResult.success) {
