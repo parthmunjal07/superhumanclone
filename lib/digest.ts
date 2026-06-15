@@ -30,7 +30,6 @@ Output ONLY valid JSON with no markdown wrapping. Do not include markdown code b
 
     const { object: parsed } = await generateObject({
       model: openrouter('openrouter/free'),
-      maxTokens: 2048,
       prompt,
       schema: z.object({
         meetings: z.array(z.object({

@@ -17,10 +17,16 @@ export default function DigestPage() {
   const handleRegenerate = async () => {
     setIsRegenerating(true);
     try {
-      await fetch('/api/digest', { method: 'POST' });
+      const res = await fetch('/api/digest', { method: 'POST' });
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Failed to regenerate:', errorText);
+        alert('Failed to regenerate digest: ' + errorText);
+      }
       await mutate();
     } catch (e) {
       console.error(e);
+      alert('Error regenerating digest.');
     } finally {
       setIsRegenerating(false);
     }

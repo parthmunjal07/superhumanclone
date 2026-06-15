@@ -1,15 +1,22 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { corsair } from '@/lib/corsair';
+import { processOAuthCallback } from 'corsair/oauth';
 
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
-    const userId = url.searchParams.get('userId');
-    const integration = url.searchParams.get('integration');
+    const code = url.searchParams.get('code');
+    const state = url.searchParams.get('state');
 
-    if (!userId || !integration) {
+    if (!code || !state) {
       return NextResponse.json({ success: false, error: { code: 'BAD_REQUEST', message: 'Missing callback parameters' } }, { status: 400 });
     }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const redirectUri = `${appUrl}/api/auth/corsair/callback`;
+
+    const { plugin: integration, tenantId: userId } = await processOAuthCallback(corsair, { code, state, redirectUri });
 
     // Since we use the internal DB userId as the tenantId in Corsair, they are the same
     const corsairUserId = userId;
@@ -32,7 +39,7 @@ export async function GET(req: Request) {
       data: updateData,
     });
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    // appUrl already defined above
     if (updatedUser.gmailConnected && updatedUser.calendarConnected) {
       return NextResponse.redirect(`${appUrl}/inbox`);
     } else {

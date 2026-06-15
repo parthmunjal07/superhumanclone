@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyToken, getRefreshTokenCookie } from '@/lib/auth';
-import { getCorsairClient } from '@/lib/corsair';
+import { getCorsairClient, corsair } from '@/lib/corsair';
+import { generateOAuthUrl } from 'corsair/oauth';
 
 export async function GET(req: Request) {
   try {
@@ -18,10 +19,10 @@ export async function GET(req: Request) {
     
     // We pass integration and userId so we can identify them in the callback
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const redirectUri = `${appUrl}/api/auth/corsair/callback?integration=gmail&userId=${userId}`;
-    const { authorizeUrl } = await tenant.plugins.oauth.authorizeUrl('gmail', redirectUri);
+    const redirectUri = `${appUrl}/api/auth/corsair/callback`;
+    const { url } = await generateOAuthUrl(corsair, 'gmail', { tenantId: userId, redirectUri });
     
-    return NextResponse.redirect(authorizeUrl);
+    return NextResponse.redirect(url);
   } catch (error: any) {
     console.error('Error generating Gmail OAuth URL:', error);
     return NextResponse.json({ success: false, error: { code: 'INTERNAL_ERROR', message: error.message || 'Failed to generate OAuth URL' } }, { status: 500 });
@@ -39,8 +40,14 @@ export async function DELETE(req: Request) {
     const tenant = await getCorsairClient(userId);
 
     // Revoke the integration by clearing the account credentials
-    await tenant.plugins.credentials.clear('gmail', 'access_token');
-    await tenant.plugins.credentials.clear('gmail', 'refresh_token');
+    try {
+      await tenant.gmail.keys.set_access_token(null);
+      await tenant.gmail.keys.set_refresh_token(null);
+    } catch (err: any) {
+      if (!err.message?.includes('Account not found')) {
+        throw err;
+      }
+    }
 
     const { prisma } = await import('@/lib/prisma');
     await prisma.user.update({

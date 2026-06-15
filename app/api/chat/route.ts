@@ -61,9 +61,10 @@ Never invent information if you can use a tool to fetch it.`;
     // If the user has a connected Corsair account, fetch the MCP tools
     if (user && user.corsairUserId) {
       try {
-        const tenant = await getCorsairClient(user.corsairUserId);
-        const mcpClient = await tenant.mcp.createVercelClient();
-        tools = await mcpClient.tools();
+        // Self-hosted Corsair does not currently expose tenant.mcp.createVercelClient() natively.
+        // If you need MCP tools, you must either use the managed @corsair-dev/app client,
+        // or implement a custom tool wrapper for your self-hosted endpoints.
+        tools = {};
       } catch (err) {
         console.warn('Failed to retrieve Corsair MCP tools:', err);
       }

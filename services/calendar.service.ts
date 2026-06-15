@@ -6,20 +6,18 @@ export class CalendarService {
     try {
       const queryParamsBase = {
         singleEvents: true,
-        orderBy: 'startTime',
+        orderBy: 'startTime' as const,
         maxResults: 250,
         timeMin: timeMin || new Date().toISOString(),
         ...(timeMax ? { timeMax } : {})
       };
 
-      const result = await t.run<{ items: any[] }>('googlecalendar.api.events.getMany', {
+      const data = await t.googlecalendar.api.events.getMany({
         calendarId: 'primary',
         ...queryParamsBase
       });
 
-      if (!result.success) throw new Error("Corsair auth failed");
-
-      const rawEvents = result.data.items || [];
+      const rawEvents = data.items || [];
       
       return rawEvents.map((e: any) => ({
         id: e.id,
@@ -43,11 +41,11 @@ export class CalendarService {
   static async createEvent(corsairUserId: string, data: any) {
     const t = await getCorsairClient(corsairUserId);
     try {
-      const result = await t.run<any>('googlecalendar.api.events.create', {
+      const responseData = await t.googlecalendar.api.events.create({
         calendarId: 'primary',
         sendUpdates: 'all',
         ...(data.addMeetLink ? { conferenceDataVersion: 1 } : {}),
-        requestBody: {
+        event: {
           summary: data.title,
           description: data.description || '',
           location: data.location || '',
@@ -66,8 +64,7 @@ export class CalendarService {
           } : {})
         }
       });
-      if (!result.success) throw new Error("Corsair auth failed");
-      return { success: true, event: result.data };
+      return { success: true, event: responseData };
     } catch (err: any) {
       console.error("[CalendarService] Failed to create event:", err.message);
       throw new Error(err.message || 'Failed to create event');
@@ -77,12 +74,12 @@ export class CalendarService {
   static async updateEvent(corsairUserId: string, eventId: string, data: any) {
     const t = await getCorsairClient(corsairUserId);
     try {
-      const result = await t.run<any>('googlecalendar.api.events.update', {
+      const updateData = await t.googlecalendar.api.events.update({
         calendarId: 'primary',
-        eventId: eventId,
+        id: eventId,
         sendUpdates: 'all',
         ...(data.addMeetLink ? { conferenceDataVersion: 1 } : {}),
-        requestBody: {
+        event: {
           summary: data.title,
           description: data.description || '',
           location: data.location || '',
@@ -101,8 +98,7 @@ export class CalendarService {
           } : {})
         }
       });
-      if (!result.success) throw new Error("Corsair auth failed");
-      return { success: true, event: result.data };
+      return { success: true, event: updateData };
     } catch (err: any) {
       console.error("[CalendarService] Failed to update event:", err.message);
       throw new Error(err.message || 'Failed to update event');
@@ -112,12 +108,11 @@ export class CalendarService {
   static async deleteEvent(corsairUserId: string, eventId: string) {
     const t = await getCorsairClient(corsairUserId);
     try {
-      const result = await t.run<any>('googlecalendar.api.events.deleteEvent', {
+      await t.googlecalendar.api.events.delete({
         calendarId: 'primary',
-        eventId: eventId,
+        id: eventId,
         sendUpdates: 'all'
       });
-      if (!result.success) throw new Error("Corsair auth failed");
       return { success: true };
     } catch (err: any) {
       console.error("[CalendarService] Failed to delete event:", err.message);

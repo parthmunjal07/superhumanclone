@@ -20,7 +20,6 @@ Snippet: ${snippet}`;
     // 1. Use generateObject with Zod instead of generateText
     const { object } = await generateObject({
       model: openrouter('openrouter/free'), // Reliable free model router
-      maxTokens: 1024,
       system: 'You are an email triage assistant.',
       prompt,
       schema: z.object({

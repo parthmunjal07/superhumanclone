@@ -18,7 +18,7 @@ export class EmailService {
     const t = await getCorsairClient(finalCorsairId);
     
     try {
-      const listResult = await t.run<{ messages: any[], nextPageToken?: string }>('gmail.api.messages.list', {
+      const listData = await t.gmail.api.messages.list({
         maxResults: limit,
         pageToken: cursor || undefined,
         // Optional: pre-filter by view here using Gmail query syntax, e.g. q: 'in:inbox'
@@ -26,15 +26,10 @@ export class EmailService {
         q: view === 'SENT' ? 'in:sent' : view === 'SPAM' ? 'in:spam' : view === 'ARCHIVED' ? '-in:inbox -in:trash -in:spam' : 'in:inbox'
       });
 
-      if (!listResult.success) {
-        throw new Error('Corsair auth failed or user not connected');
-      }
-
-      const msgIds = listResult.data.messages || [];
+      const msgIds = listData.messages || [];
       const liveMsgs = await Promise.all(
         msgIds.map(async (m: any) => {
-          const getResult = await t.run<any>('gmail.api.messages.get', { id: m.id });
-          return getResult.success ? getResult.data : null;
+          return await t.gmail.api.messages.get({ id: m.id }).catch(() => null);
         })
       );
 
@@ -57,7 +52,7 @@ export class EmailService {
 
       return { 
         emails: messages, 
-        nextCursor: listResult.data.nextPageToken || null 
+        nextCursor: listData.nextPageToken || null 
       };
     } catch (err: any) {
       console.error("[EmailService] Failed to fetch emails from Corsair:", err.message);
@@ -87,11 +82,10 @@ export class EmailService {
       .replace(/=+$/, '');
 
     try {
-      const result = await t.run<any>('gmail.api.messages.send', {
+      const data = await t.gmail.api.messages.send({
         raw: encodedRaw
       });
-      if (!result.success) throw new Error("Corsair auth failed");
-      return result.data;
+      return data;
     } catch (err: any) {
       console.error("[EmailService] Failed to send email:", err.message);
       throw new Error("Failed to send email via Corsair");
@@ -104,11 +98,10 @@ export class EmailService {
   static async archiveEmail(corsairUserId: string, emailId: string) {
     const t = await getCorsairClient(corsairUserId);
     try {
-      const result = await t.run<any>('gmail.api.messages.modify', {
+      await t.gmail.api.messages.modify({
         id: emailId,
         removeLabelIds: ["INBOX"]
       });
-      if (!result.success) throw new Error("Corsair auth failed");
       return { success: true };
     } catch (err: any) {
       throw new Error("Failed to archive email");
@@ -121,10 +114,9 @@ export class EmailService {
   static async deleteEmail(corsairUserId: string, emailId: string) {
     const t = await getCorsairClient(corsairUserId);
     try {
-      const result = await t.run<any>('gmail.api.messages.trash', {
+      await t.gmail.api.messages.trash({
         id: emailId
       });
-      if (!result.success) throw new Error("Corsair auth failed");
       return { success: true };
     } catch (err: any) {
       throw new Error("Failed to delete email");
@@ -138,18 +130,17 @@ export class EmailService {
     const t = await getCorsairClient(corsairUserId);
     
     try {
-      const listResult = await t.run<{ messages: any[] }>('gmail.api.messages.list', {
+      const listData = await t.gmail.api.messages.list({
         q: query,
         maxResults: 10,
       });
 
-      if (!listResult.success || !listResult.data.messages) return [];
+      if (!listData.messages) return [];
 
-      const msgIds = listResult.data.messages;
+      const msgIds = listData.messages;
       const liveMsgs = await Promise.all(
         msgIds.map(async (m: any) => {
-          const getResult = await t.run<any>('gmail.api.messages.get', { id: m.id });
-          return getResult.success ? getResult.data : null;
+          return await t.gmail.api.messages.get({ id: m.id }).catch(() => null);
         })
       );
 

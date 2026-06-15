@@ -5,4 +5,10 @@ const handler = toNextJsHandler(corsair, {
   basePath: '/api/corsair',
 });
 
-export { handler as GET, handler as POST };
+export async function GET(req: Request) {
+  return handler.GET(req);
+}
+
+export async function POST(req: Request) {
+  return handler.POST(req);
+}
