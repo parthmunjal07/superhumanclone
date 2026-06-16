@@ -45,13 +45,13 @@ export class CalendarService {
         calendarId: 'primary',
         sendUpdates: 'all',
         ...(data.addMeetLink ? { conferenceDataVersion: 1 } : {}),
-        event: {
+        requestBody: {
           summary: data.title,
-          description: data.description || '',
-          location: data.location || '',
+          ...(data.description ? { description: data.description } : {}),
+          ...(data.location ? { location: data.location } : {}),
           start: { dateTime: data.start },
           end: { dateTime: data.end },
-          attendees: data.attendees?.map((email: string) => ({ email })) || [],
+          ...(data.attendees && data.attendees.length > 0 ? { attendees: data.attendees.map((email: string) => ({ email })) } : {}),
           ...(data.colorId ? { colorId: data.colorId } : {}),
           ...(data.recurrence ? { recurrence: data.recurrence } : {}),
           ...(data.addMeetLink ? {
@@ -79,13 +79,13 @@ export class CalendarService {
         id: eventId,
         sendUpdates: 'all',
         ...(data.addMeetLink ? { conferenceDataVersion: 1 } : {}),
-        event: {
+        requestBody: {
           summary: data.title,
-          description: data.description || '',
-          location: data.location || '',
+          ...(data.description ? { description: data.description } : {}),
+          ...(data.location ? { location: data.location } : {}),
           start: { dateTime: data.start },
           end: { dateTime: data.end },
-          attendees: data.attendees?.map((email: string) => ({ email })) || [],
+          ...(data.attendees && data.attendees.length > 0 ? { attendees: data.attendees.map((email: string) => ({ email })) } : {}),
           ...(data.colorId ? { colorId: data.colorId } : {}),
           ...(data.recurrence ? { recurrence: data.recurrence } : {}),
           ...(data.addMeetLink ? {

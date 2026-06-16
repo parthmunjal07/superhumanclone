@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { streamText, convertToModelMessages, isStepCount, tool } from 'ai';
+import { streamText, convertToModelMessages, stepCountIs, tool } from 'ai';
 import { z } from 'zod';
 import { createMCPClient } from '@ai-sdk/mcp';
 import { mistral } from '@/lib/ai';
@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { getRefreshTokenCookie, verifyToken } from '@/lib/auth';
 import { redis } from '@/lib/redis';
 import { CalendarService } from '@/services/calendar.service';
+import { EmailService } from '@/services/email.service';
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,15 +39,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Rate Limiting (10 requests per minute per user/IP)
-    // const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
-    // const rateLimitKey = `ratelimit:chat:${user ? user.id : ip}`;
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized: Sign in to use Meridian' }), { status: 401 });
+    }
+
+    // Rate Limiting (5 AI calls per day)
+    // const today = new Date().toISOString().split('T')[0];
+    // const rateLimitKey = `ratelimit:ai:${user.id}:${today}`;
     // const requests = await redis.incr(rateLimitKey);
     // if (requests === 1) {
-    //   await redis.expire(rateLimitKey, 60);
+    //   await redis.expire(rateLimitKey, 86400); // 24 hours
     // }
-    // if (requests > 10) {
-    //   return new Response(JSON.stringify({ error: 'Too many requests' }), { status: 429 });
+    // if (requests > 5) {
+    //   return new Response(JSON.stringify({ error: "You've reached your daily limit of 5 AI requests. Please upgrade or return tomorrow!" }), { status: 429 });
     // }
 
     // Prepare system prompt parameters
@@ -59,17 +64,19 @@ export async function POST(req: NextRequest) {
 User's Name: ${userName}
 Current Date: ${dateStr}
 Current Time: ${timeStr}
+Current Timezone: ${tz}
 
 CRITICAL INSTRUCTIONS FOR ACTIONS:
 1. When the user asks you to send an email, schedule a meeting, or perform an action, DO NOT just type out a draft or say you did it. 
-2. You MUST actually invoke the provided MCP tool (e.g., a send_email or create_event tool) to execute the request.
+2. You MUST actually invoke the provided tool (e.g., send_email or create_event) to execute the request.
 3. Only type out a plain-text draft if the user explicitly uses the word "draft".
 4. AFTER RECEIVING TOOL RESULTS, YOU MUST ALWAYS SYNTHESIZE THE DATA AND PROVIDE A NATURAL LANGUAGE SUMMARY TO THE USER. DO NOT STOP AFTER THE TOOL CALL.
+5. YOU HAVE NEW CAPABILITIES: You can SEND EMAILS and CREATE CALENDAR EVENTS with Google Meet links.
 
 TOOL USAGE RULES:
-- When calling get_calendar_events, ALWAYS pass today's date (${dateStr}) as the date parameter
-  unless the user specifies a different date.
-- Date format must be YYYY-MM-DD (e.g. ${new Date().toISOString().split('T')[0]}).
+- When calling get_calendar_events, ALWAYS pass today's date (${dateStr}) as the date parameter unless the user specifies a different date. Date format must be YYYY-MM-DD.
+- When calling create_event, map conversational times (like "tomorrow at 5pm") to valid ISO 8601 strings taking into account the current date (${dateStr}), time (${timeStr}), and timezone (${tz}).
+  Example: "tomorrow at 5pm" must be correctly mapped to the ISO datetime for 17:00:00 in the user's local timezone. The system will automatically inject a Google Meet link and send invites.
 - Never call tools with empty parameters.`;
 
     let tools: any = undefined;
@@ -119,6 +126,51 @@ TOOL USAGE RULES:
             return `SYSTEM INSTRUCTION: The tool executed successfully. Here is the raw data: ${JSON.stringify(slimEvents)}. 
             CRITICAL: You must now reply to the user in a friendly, conversational tone summarizing this data. DO NOT output raw JSON or code blocks.`;
           }
+        }),
+        send_email: tool({
+          description: "Send an email on behalf of the user.",
+          inputSchema: z.object({
+            to: z.string().describe("The email address of the recipient"),
+            subject: z.string().describe("The subject of the email"),
+            body: z.string().describe("The plain text body of the email"),
+          }),
+          execute: async ({ to, subject, body }) => {
+            console.log(`[Agent Tool] Sending email to ${to}`);
+            try {
+              await EmailService.sendEmail(corsairId, { to, subject, body });
+              return `SYSTEM INSTRUCTION: Email successfully sent to \${to}. Tell the user the email was sent.`;
+            } catch (err: any) {
+              return { error: `Failed to send email: \${err.message}` };
+            }
+          }
+        }),
+        create_event: tool({
+          description: "Create a calendar event and automatically add a Google Meet link.",
+          inputSchema: z.object({
+            title: z.string().describe("Title of the event"),
+            start: z.string().describe("Start time as an ISO string (e.g., 2026-06-17T17:00:00.000Z)"),
+            end: z.string().describe("End time as an ISO string (e.g., 2026-06-17T18:00:00.000Z)"),
+            attendees: z.array(z.string()).optional().describe("List of attendee email addresses"),
+          }),
+          execute: async ({ title, start, end, attendees }) => {
+            console.log(`[Agent Tool] Creating event: ${title}`);
+            try {
+              const res = await CalendarService.createEvent(corsairId, {
+                title,
+                start,
+                end,
+                attendees: attendees || [],
+                addMeetLink: true
+              });
+              
+              if (res.success) {
+                 return `SYSTEM INSTRUCTION: Event "\${title}" created successfully with a Google Meet link. The attendees have been notified. Tell the user it was scheduled successfully.`;
+              }
+              return { error: 'Failed to create event.' };
+            } catch (err: any) {
+              return { error: `Failed to create event: \${err.message}` };
+            }
+          }
         })
       };
     }
@@ -128,7 +180,7 @@ TOOL USAGE RULES:
       system: systemPrompt,
       messages: coreMessages,
       tools,
-      stopWhen: isStepCount(5),
+      stopWhen: stepCountIs(5),
       
       onFinish: ({ text, usage }) => {
         console.log('✅ Stream finished — tokens:', usage?.totalTokens);

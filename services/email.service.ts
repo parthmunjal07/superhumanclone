@@ -19,8 +19,8 @@ export class EmailService {
     
     try {
       const listData = await t.gmail.api.messages.list({
-        maxResults: limit,
-        pageToken: cursor || undefined,
+        maxResults: 50, // Strictly enforce max 50 for free users
+        pageToken: undefined, // Do not allow pagination beyond the first page
         // Optional: pre-filter by view here using Gmail query syntax, e.g. q: 'in:inbox'
         // For simplicity we will filter locally or via q param
         q: view === 'SENT' ? 'in:sent' : view === 'SPAM' ? 'in:spam' : view === 'ARCHIVED' ? '-in:inbox -in:trash -in:spam' : 'in:inbox'
@@ -52,7 +52,7 @@ export class EmailService {
 
       return { 
         emails: messages, 
-        nextCursor: listData.nextPageToken || null 
+        nextCursor: null // Force no next page for free users
       };
     } catch (err: any) {
       console.error("[EmailService] Failed to fetch emails from Corsair:", err.message);

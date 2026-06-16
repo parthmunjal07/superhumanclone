@@ -51,15 +51,24 @@ export async function POST(req: NextRequest) {
     const payload = verifyToken(token);
     if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Bust the cache and regenerate
-    // const today = new Date().toISOString().split('T')[0];
-    // const cacheKey = `user:${payload.userId}:digest:${today}`;
-    // await redis.del(cacheKey);
+    const today = new Date().toISOString().split('T')[0];
+    const rateLimitKey = `ratelimit:digest:${payload.userId}:${today}`;
+    const requests = await redis.incr(rateLimitKey);
+    if (requests === 1) {
+      await redis.expire(rateLimitKey, 86400);
+    }
+    if (requests > 1) {
+      return NextResponse.json({ error: "You've reached your daily limit of 1 AI digest. Please upgrade or return tomorrow!" }, { status: 429 });
+    }
 
-    // const digest = await generateDigestForUser(payload.userId);
-    // if (!digest) {
-    //   return NextResponse.json({ error: 'Failed to regenerate digest' }, { status: 500 });
-    // }
+    // Bust the cache and regenerate
+    const cacheKey = `user:${payload.userId}:digest:${today}`;
+    await redis.del(cacheKey);
+
+    const digest = await generateDigestForUser(payload.userId);
+    if (!digest) {
+      return NextResponse.json({ error: 'Failed to regenerate digest' }, { status: 500 });
+    }
 
     return NextResponse.json(digest);
   } catch (error: any) {

@@ -9,7 +9,7 @@ import {
 import { Waveform } from '@/components/Waveform';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 
-export function AgentChatUI({ onClose, isDocked = false }: { onClose?: () => void, isDocked?: boolean }) {
+export function AgentChatUI({ onClose, isDocked = false, isAuthenticated = false }: { onClose?: () => void, isDocked?: boolean, isAuthenticated?: boolean }) {
   // 1. Voice Input Hooks
   const { state: voiceState, toggleListening, stopListening, transcript, setTranscript } = useVoiceInput();
   
@@ -138,6 +138,23 @@ export function AgentChatUI({ onClose, isDocked = false }: { onClose?: () => voi
           </div>
         ))}
 
+        {/* Error State - Graceful UI Degradation */}
+        {error && (
+          <div className="flex gap-4 group">
+            <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 mt-0.5">
+              <Sparkles className="w-4 h-4 text-zinc-900" />
+            </div>
+            <div className="flex-1 space-y-3 min-w-0">
+              <div className="text-[11px] font-medium text-zinc-400 tracking-tight">Superhuman AI</div>
+              <div className="text-[14px] leading-[1.6] tracking-tight text-zinc-800 whitespace-pre-wrap break-words">
+                {error.message.includes('429') || error.message.includes('limit') 
+                  ? "You've reached your daily limit of 5 AI requests. Please upgrade or return tomorrow!" 
+                  : error.message || "An error occurred."}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Loading Indicator */}
         {isLoading && status === 'submitted' && (
            <div className="flex gap-4">
@@ -154,9 +171,16 @@ export function AgentChatUI({ onClose, isDocked = false }: { onClose?: () => voi
 
       {/* Input Form */}
       <div className="p-4 border-t border-zinc-100 bg-white shrink-0">
-        <form onSubmit={handleSubmit} className="relative flex flex-col gap-2">
-           {voiceState === 'listening' && (
-             <div className="absolute -top-12 left-0 right-0 flex justify-center">
+        {!isAuthenticated ? (
+          <div className="flex items-center justify-center p-2">
+            <a href="/login" className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-zinc-900 text-white text-[13px] font-medium tracking-tight hover:bg-zinc-800 transition-colors shadow-sm">
+              <User className="w-4 h-4" /> Sign in to use Superhuman AI
+            </a>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="relative flex flex-col gap-2">
+             {voiceState === 'listening' && (
+               <div className="absolute -top-12 left-0 right-0 flex justify-center">
                <div className="px-3 py-1.5 rounded-full bg-zinc-900 text-white shadow-lg flex items-center gap-2 animate-in slide-in-from-bottom-2 fade-in duration-200">
                  <Waveform active={true} />
                  <span className="text-[11px] font-medium tracking-tight">Listening...</span>
@@ -176,7 +200,7 @@ export function AgentChatUI({ onClose, isDocked = false }: { onClose?: () => voi
               <div className="flex items-center gap-1 pr-1">
                 <button
                   type="button"
-                  onClick={toggleListening}
+                  onClick={() => isAuthenticated && toggleListening()}
                   className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${voiceState === 'listening' ? 'bg-rose-100 text-rose-600' : 'text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200/50'}`}
                 >
                   <Mic className="w-4 h-4" />
@@ -190,7 +214,8 @@ export function AgentChatUI({ onClose, isDocked = false }: { onClose?: () => voi
                 </button>
               </div>
            </div>
-        </form>
+          </form>
+        )}
       </div>
     </div>
   );
