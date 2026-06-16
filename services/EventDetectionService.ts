@@ -1,5 +1,5 @@
 import { generateObject } from 'ai';
-import { openrouter, sanitizeLongText } from '@/lib/ai';
+import { mistral, sanitizeLongText } from '@/lib/ai';
 import { z } from 'zod';
 
 /**
@@ -12,7 +12,7 @@ export async function detectSmartChips(emailSubject: string, emailBody: string, 
   
   try {
     const { object } = await generateObject({
-      model: openrouter('anthropic/claude-3-haiku'),
+      model: mistral('mistral-small-latest'),
       system: 'You are an AI assistant that extracts calendar event details and bug/feature reports from emails. If there is no explicit meeting proposed, set hasMeeting to false. If there is no bug/feature reported, set hasBugOrFeature to false.',
       prompt: `Analyze the following email and determine if it contains a meeting request, or if it reports a bug or feature request.\n\nFrom: ${from}\nTo: ${to}\n\n${content}`,
       schema: z.object({
@@ -42,7 +42,7 @@ export async function extractMeetingActionItems(threadContent: string) {
 
   try {
     const { object } = await generateObject({
-      model: openrouter('anthropic/claude-3.5-sonnet'),
+      model: mistral('mistral-large-latest'),
       system: 'You are an executive assistant analyzing a post-meeting email thread to extract action items for a follow-up email.',
       prompt: `Extract the core action items from this meeting thread. Assign owners where explicitly mentioned.\n\nThread Context:\n${content}`,
       schema: z.object({
@@ -74,7 +74,7 @@ export async function collapseThreadDecisionLog(threadContent: string) {
 
   try {
     const { object } = await generateObject({
-      model: openrouter('anthropic/claude-3.5-sonnet'),
+      model: mistral('mistral-large-latest'),
       system: 'You are an intelligent summarization engine that distills long email threads into clear, structured decision logs for executives.',
       prompt: `Analyze the following email thread and collapse it into a structured decision log.\n\nThread Context:\n${content}`,
       schema: z.object({

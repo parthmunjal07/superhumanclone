@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { redis } from '@/lib/redis';
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { openrouter, sanitizeLongText } from '@/lib/ai';
+import { mistral, sanitizeLongText } from '@/lib/ai';
 import { EmailService } from '@/services/email.service';
 
 export async function generateDigestForUser(userId: string) {
@@ -33,7 +33,7 @@ ${emailContext}
 Output ONLY valid JSON with no markdown wrapping. Do not include markdown code block syntax like \`\`\`json.`;
 
     const { object: parsed } = await generateObject({
-      model: openrouter('openrouter/free'),
+      model: mistral('mistral-small-latest'),
       prompt,
       schema: z.object({
         meetings: z.array(z.object({
@@ -70,7 +70,7 @@ Output ONLY valid JSON with no markdown wrapping. Do not include markdown code b
     const cacheKey = `user:${userId}:digest:${today}`;
 
     // Cache in Redis for quick retrieval (48 hours)
-    await redis.set(cacheKey, JSON.stringify(parsed), 'EX', 86400 * 2);
+    // await redis.set(cacheKey, JSON.stringify(parsed), 'EX', 86400 * 2);
 
     // Persist in Postgres
     await prisma.digestCache.create({

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { redis } from '@/lib/redis';
-import { generateEmbedding, openrouter, sanitizeLongText } from '@/lib/ai';
+import { generateEmbedding, mistral, sanitizeLongText } from '@/lib/ai';
 import { waitUntil } from '@vercel/functions';
 import { generateObject } from 'ai';
 import { z } from 'zod';
@@ -19,7 +19,7 @@ Snippet: ${snippet}`;
 
     // 1. Use generateObject with Zod instead of generateText
     const { object } = await generateObject({
-      model: openrouter('openrouter/free'), // Reliable free model router
+      model: mistral('mistral-small-latest'), // Fast and efficient for classification
       system: 'You are an email triage assistant.',
       prompt,
       schema: z.object({

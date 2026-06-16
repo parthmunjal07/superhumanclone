@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { redis } from '@/lib/redis';
 import { generateText } from 'ai';
-import { openrouter } from '@/lib/ai';
+import { mistral } from '@/lib/ai';
 import { waitUntil } from '@vercel/functions';
 
 const CRON_SECRET = process.env.CRON_SECRET || 'test-cron-secret';
@@ -34,7 +34,7 @@ ${emailContext}
 Output ONLY valid JSON with no markdown wrapping.`;
 
     const { text } = await generateText({
-      model: openrouter('anthropic/claude-3.5-sonnet'),
+      model: mistral('mistral-small-latest'),
       prompt,
       maxTokens: 1500,
     } as any);
@@ -46,7 +46,7 @@ Output ONLY valid JSON with no markdown wrapping.`;
     try {
       JSON.parse(text);
       // Cache in Redis for quick retrieval (e.g. 48 hours)
-      await redis.set(cacheKey, text, 'EX', 86400 * 2);
+      // await redis.set(cacheKey, text, 'EX', 86400 * 2);
 
       // Persist in Postgres
       await prisma.digestCache.create({

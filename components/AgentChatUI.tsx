@@ -1,28 +1,31 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useChat as useChatOriginal } from '@ai-sdk/react';
-const useChat = useChatOriginal as any;
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport, isToolUIPart } from 'ai';
 import {
-  Bot, Maximize2, X, User, Paperclip, ArrowUp, Mic, ChevronDown, ChevronRight
+  Maximize2, X, User, ArrowUp, Mic, CheckCircle2, Loader2, Sparkles
 } from 'lucide-react';
 import { Waveform } from '@/components/Waveform';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 
 export function AgentChatUI({ onClose, isDocked = false }: { onClose?: () => void, isDocked?: boolean }) {
+  // 1. Voice Input Hooks
   const { state: voiceState, toggleListening, stopListening, transcript, setTranscript } = useVoiceInput();
+  
+  // 2. Local State for Input Management (needed for Voice + Typing merging)
   const inputRef = useRef<HTMLInputElement>(null);
-
   const [input, setInput] = useState('');
   const [baseInput, setBaseInput] = useState('');
   
-  const { messages, sendMessage, status } = useChat({
-    api: '/api/chat',
-    initialMessages: [], 
+  // 3. Vercel AI SDK Hook
+  const { messages, sendMessage, status, error } = useChat({
+    transport: new DefaultChatTransport({ api: '/api/chat' }),
   });
 
-  const isLoading = status === 'submitted' || status === 'streaming' || status === 'generating';
+  const isLoading = status === 'submitted' || status === 'streaming';
 
+  // --- VOICE INPUT MERGING LOGIC ---
   useEffect(() => {
     if (voiceState === 'listening') {
       setBaseInput(input);
@@ -35,6 +38,7 @@ export function AgentChatUI({ onClose, isDocked = false }: { onClose?: () => voi
     }
   }, [transcript, voiceState, baseInput]);
 
+  // --- HANDLERS ---
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
   };
@@ -42,204 +46,187 @@ export function AgentChatUI({ onClose, isDocked = false }: { onClose?: () => voi
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!input || !input.trim()) return;
+    
+    // Send the message to the backend
     sendMessage({ text: input });
     
+    // Reset all inputs
     setInput('');
     setBaseInput('');
     setTranscript('');
     stopListening();
   };
 
-  // Keyboard shortcuts (ctrl+v/k) were intentionally removed per user request to avoid conflicts.
+  // Log any silent API errors to the console
+  useEffect(() => {
+    if (error) console.error("Chat API Error:", error);
+  }, [error]);
 
   return (
-    <div className={`flex flex-col bg-white overflow-hidden font-sans ${isDocked ? 'h-[600px] w-[500px] rounded-t-3xl sm:rounded-3xl shadow-2xl border border-zinc-200/60' : 'h-full w-full'}`}>
+    <div className={`flex flex-col bg-white overflow-hidden ${isDocked ? 'h-[600px] w-[500px] rounded-xl shadow-2xl border border-zinc-200/50' : 'h-full w-full'}`}>
 
-      {/* Header */}
-      <div className="flex items-center justify-between p-5 border-b border-zinc-100 bg-white shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-2xl bg-[#CBE4FF] flex items-center justify-center shrink-0">
-            <Bot className="w-5 h-5 text-[#1E4C82]" />
+      {/* Header - Minimalist Swiss */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 bg-white/80 backdrop-blur-md shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-6 h-6 rounded-md bg-zinc-900 flex items-center justify-center">
+            <Sparkles className="w-3.5 h-3.5 text-white" />
           </div>
           <div>
-            <h2 className="text-[16px] font-bold text-zinc-900 leading-tight">Corsair Agent</h2>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <div className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span className="text-[11px] font-bold tracking-widest text-emerald-600 uppercase">Online</span>
-            </div>
+            <h2 className="text-[14px] font-semibold tracking-tight text-zinc-900 leading-none">Superhuman AI</h2>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {!isDocked && (
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-50 border border-zinc-200 hover:bg-zinc-100 text-[11px] font-bold tracking-widest text-zinc-600 uppercase transition-colors">
+            <button className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-mono tracking-widest text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-colors uppercase">
               <Maximize2 className="w-3 h-3" /> Expand
             </button>
           )}
           {isDocked && (
-            <button onClick={onClose} className="p-2 rounded-full hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 transition-colors">
-              <X className="w-5 h-5" />
+            <button onClick={onClose} className="p-1.5 rounded-md hover:bg-zinc-100 text-zinc-400 hover:text-zinc-900 transition-colors">
+              <X className="w-4 h-4" />
             </button>
           )}
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#F9FAFB]">
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto px-5 py-6 space-y-8 bg-white">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-zinc-400 space-y-4">
-            <Bot className="w-12 h-12 text-zinc-200" />
-            <p className="text-sm font-medium">How can I help you today?</p>
+          <div className="flex flex-col items-center justify-center h-full text-zinc-400 gap-3">
+             <div className="w-12 h-12 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shadow-sm">
+                <Sparkles className="w-6 h-6 text-zinc-300" />
+             </div>
+             <p className="text-[13px] font-medium tracking-tight">How can I help you today?</p>
           </div>
         )}
 
-        {messages.map((m: any) => (
-          <div key={m.id} className="flex gap-4 max-w-full">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${m.role === 'user' ? 'bg-zinc-200' : 'bg-[#CBE4FF]'}`}>
-              {m.role === 'user' ? <User className="w-4 h-4 text-zinc-600" /> : <Bot className="w-4 h-4 text-[#1E4C82]" />}
+        {messages.map((m) => (
+          <div key={m.id} className="flex gap-4 group">
+            <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 mt-0.5">
+              {m.role === 'user' ? <User className="w-4 h-4 text-zinc-400" /> : <Sparkles className="w-4 h-4 text-zinc-900" />}
             </div>
             
-            <div className="flex-1 min-w-0 space-y-2">
-              <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
-                {m.role === 'user' ? 'You' : 'Agent'}
+            <div className="flex-1 space-y-3 min-w-0">
+              <div className="text-[11px] font-medium text-zinc-400 tracking-tight">
+                {m.role === 'user' ? 'You' : 'Superhuman AI'}
               </div>
               
-              {m.content && m.content.length > 0 && (
-                <div className={`rounded-2xl p-4 text-[14px] leading-relaxed break-words shadow-sm ${m.role === 'user' ? 'bg-white border border-zinc-200 text-zinc-900' : 'bg-[#CBE4FF] border border-[#B4D7FF] text-[#1E4C82]'}`}>
-                  {m.content}
+              {/* Render Tool Invocations (MCP Actions) - Sleek Inline Chips */}
+              {m.parts && m.parts.filter(isToolUIPart).length > 0 && (
+                <div className="flex flex-col gap-2">
+                  {m.parts.filter(isToolUIPart).map((tool, idx) => (
+                    <ToolActionChip key={tool.toolCallId || idx} tool={tool} />
+                  ))}
+                </div>
+              )}
+              {(!m.parts && m.toolInvocations && m.toolInvocations.length > 0) && (
+                <div className="flex flex-col gap-2">
+                  {m.toolInvocations.map((tool, idx) => (
+                     <ToolActionChip key={tool.toolCallId || idx} tool={tool} />
+                  ))}
                 </div>
               )}
 
-              {(!m.content || m.content.length === 0) && m.parts && m.parts.map((p: any, i: number) => {
-                if (p.type === 'text' && p.text) {
-                  return (
-                    <div key={i} className={`rounded-2xl p-4 text-[14px] leading-relaxed break-words shadow-sm mt-2 ${m.role === 'user' ? 'bg-white border border-zinc-200 text-zinc-900' : 'bg-[#CBE4FF] border border-[#B4D7FF] text-[#1E4C82]'}`}>
-                      {p.text}
-                    </div>
-                  );
-                }
-                return null;
-              })}
+              {/* Render Text Content (Natural Language) */}
+              {m.parts ? m.parts.filter((p: any) => p.type === 'text').map((p: any, i: number) => (
+                <div key={i} className="text-[14px] leading-[1.6] tracking-tight text-zinc-800 whitespace-pre-wrap break-words">
+                  {p.text}
+                </div>
+              )) : (
+                (m as any).content && (m as any).content.length > 0 && (
+                  <div className="text-[14px] leading-[1.6] tracking-tight text-zinc-800 whitespace-pre-wrap break-words">
+                    {(m as any).content}
+                  </div>
+                )
+              )}
 
-              {/* MCP Action Log parsed from stream */}
-              {(() => {
-                const tools = m.toolInvocations || (m.parts ? m.parts.filter((p: any) => p.type === 'tool-invocation' || p.type === 'dynamic-tool' || p.type === 'tool') : []);
-                if (tools.length > 0) {
-                  return <ActionLog toolInvocations={tools} />;
-                }
-                return null;
-              })()}
             </div>
           </div>
         ))}
 
-        {isLoading && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
-          <div className="flex gap-4">
-            <div className="w-8 h-8 rounded-full bg-[#CBE4FF] flex items-center justify-center shrink-0">
-              <Bot className="w-4 h-4 text-[#1E4C82]" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 pt-2">
-                <div className="flex items-end gap-1 h-3">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="w-1 bg-[#1E4C82] rounded-full h-full animate-pulse opacity-60" style={{ animationDelay: `${i * 150}ms` }} />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Loading Indicator */}
+        {isLoading && status === 'submitted' && (
+           <div className="flex gap-4">
+             <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 mt-0.5">
+               <Sparkles className="w-4 h-4 text-zinc-900" />
+             </div>
+             <div className="flex-1 flex items-center gap-2 pt-1">
+               <Loader2 className="w-3.5 h-3.5 text-zinc-400 animate-spin" />
+               <span className="text-[13px] tracking-tight text-zinc-500">Thinking...</span>
+             </div>
+           </div>
         )}
       </div>
 
-      {/* Input */}
-      <div className="p-5 border-t border-zinc-100 bg-white shrink-0">
-        {voiceState === 'listening' && (
-          <div className="flex items-center gap-3 mb-3 px-2">
-            <div className="px-3 py-1.5 rounded-full bg-blue-50 flex items-center gap-2 border border-blue-100">
-              <Waveform active={true} />
-              <span className="text-[10px] font-bold tracking-widest text-blue-600 uppercase">Listening</span>
-            </div>
-          </div>
-        )}
+      {/* Input Form */}
+      <div className="p-4 border-t border-zinc-100 bg-white shrink-0">
+        <form onSubmit={handleSubmit} className="relative flex flex-col gap-2">
+           {voiceState === 'listening' && (
+             <div className="absolute -top-12 left-0 right-0 flex justify-center">
+               <div className="px-3 py-1.5 rounded-full bg-zinc-900 text-white shadow-lg flex items-center gap-2 animate-in slide-in-from-bottom-2 fade-in duration-200">
+                 <Waveform active={true} />
+                 <span className="text-[11px] font-medium tracking-tight">Listening...</span>
+               </div>
+             </div>
+           )}
 
-        <form onSubmit={handleSubmit} className="flex items-center bg-zinc-50 border border-zinc-200 rounded-2xl p-2 focus-within:border-zinc-300 focus-within:bg-white focus-within:shadow-sm transition-all">
-          <div className="pl-3 pr-2 text-zinc-400 hover:text-zinc-600 transition-colors cursor-pointer shrink-0">
-            <Paperclip className="w-5 h-5" />
-          </div>
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={handleInputChange}
-            placeholder="Ask Agent anything..."
-            className="flex-1 bg-transparent border-none focus:outline-none text-[15px] text-zinc-900 px-2 placeholder:text-zinc-400 min-w-0"
-          />
-          <div className="flex items-center gap-2 pr-1 shrink-0">
-            <button
-              type="button"
-              onClick={toggleListening}
-              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${voiceState === 'listening' ? 'bg-[#FECDD3] text-[#881337] hover:bg-[#FDA4AF]' : 'bg-transparent text-zinc-400 hover:bg-zinc-200 hover:text-zinc-700'}`}
-            >
-              <Mic className="w-5 h-5" />
-            </button>
-            <button type="submit" disabled={!input || input.trim() === ''} className="w-10 h-10 rounded-xl bg-zinc-900 text-white flex items-center justify-center hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
-              <ArrowUp className="w-5 h-5" />
-            </button>
-          </div>
+           <div className={`flex items-center rounded-xl p-1 transition-all duration-200 ${voiceState === 'listening' ? 'bg-zinc-50 border border-zinc-200 shadow-sm' : 'bg-zinc-50/50 border border-zinc-200/50 hover:bg-zinc-50 focus-within:bg-zinc-50 focus-within:border-zinc-300 focus-within:shadow-sm'}`}>
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={handleInputChange}
+                placeholder="Ask Superhuman AI..."
+                className="flex-1 bg-transparent border-none focus:outline-none text-[14px] tracking-tight text-zinc-900 px-3 placeholder:text-zinc-400 h-10"
+              />
+              <div className="flex items-center gap-1 pr-1">
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${voiceState === 'listening' ? 'bg-rose-100 text-rose-600' : 'text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200/50'}`}
+                >
+                  <Mic className="w-4 h-4" />
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={!input || input.trim() === '' || isLoading} 
+                  className="w-8 h-8 rounded-lg bg-zinc-900 text-white flex items-center justify-center hover:bg-zinc-800 transition-all disabled:opacity-30 disabled:hover:bg-zinc-900 shadow-sm"
+                >
+                  <ArrowUp className="w-4 h-4" />
+                </button>
+              </div>
+           </div>
         </form>
       </div>
     </div>
   );
 }
 
-function ActionLog({ toolInvocations }: { toolInvocations: any[] }) {
-  const [logOpen, setLogOpen] = useState(false);
-  
+// Minimalist Tool Action Chip (Replaces JSON ActionLog)
+function ToolActionChip({ tool }: { tool: any }) {
+  const isComplete = tool.state === 'result' || tool.state === 'output-available';
+  const actionName = formatActionName(tool.toolName);
+
   return (
-    <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden mt-3 shadow-sm">
-      <button
-        onClick={() => setLogOpen(!logOpen)}
-        className="w-full flex items-center justify-between p-4 bg-zinc-50 hover:bg-zinc-100 transition-colors"
-      >
-        <div className="flex items-center gap-2 text-[11px] font-bold tracking-widest uppercase">
-          {logOpen ? <ChevronDown className="w-4 h-4 text-[#1E4C82]" /> : <ChevronRight className="w-4 h-4 text-[#1E4C82]" />}
-          <span className="text-[#1E4C82]">Action Log</span>
-          <span className="text-zinc-400">· {toolInvocations.length} calls</span>
-        </div>
-      </button>
-      {logOpen && (
-        <div className="p-4 space-y-4 border-t border-zinc-100 bg-white">
-          {toolInvocations.map((tool, idx) => {
-            const state = tool.state === 'output-available' || tool.state === 'result' ? 'result' : tool.state || 'running';
-            const inputStr = JSON.stringify(tool.args || tool.input, null, 2);
-            const outputStr = state === 'result' ? JSON.stringify(tool.result || tool.output, null, 2) : 'running...';
-            return (
-              <ToolCallItem
-                key={tool.toolCallId || idx}
-                name={tool.toolName}
-                state={state}
-                input={inputStr}
-                output={outputStr}
-              />
-            );
-          })}
-        </div>
+    <div className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-zinc-50 border border-zinc-200/60 w-fit shadow-sm">
+      {isComplete ? (
+        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+      ) : (
+        <Loader2 className="w-3.5 h-3.5 text-zinc-400 animate-spin" />
       )}
+      <span className="text-[12px] font-medium tracking-tight text-zinc-600">
+        {isComplete ? `Completed: ${actionName}` : `Running: ${actionName}...`}
+      </span>
     </div>
   );
 }
 
-function ToolCallItem({ name, state, input, output }: { name: string, state: string, input: string, output: string }) {
-  return (
-    <div className="text-[12px] font-mono">
-      <div className="flex items-center gap-2 mb-2">
-        <div className={`w-2 h-2 rounded-full ${state === 'result' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
-        <span className={`${state === 'result' ? 'text-emerald-600' : 'text-amber-600'} font-bold uppercase tracking-widest`}>Tool Call</span>
-        <span className="text-zinc-500 font-semibold">{name}</span>
-      </div>
-      <div className="bg-zinc-50 border border-zinc-100 rounded-xl p-4 ml-4 space-y-3 overflow-x-auto">
-        <div><span className="text-amber-600 font-bold">Input:</span> <span className="text-zinc-700 whitespace-pre-wrap">{input}</span></div>
-        <div><span className="text-emerald-600 font-bold">Output:</span> <span className="text-zinc-700 whitespace-pre-wrap">{output}</span></div>
-      </div>
-    </div>
-  );
+// Helper to format raw tool names into human readable actions
+function formatActionName(name: string): string {
+  switch (name) {
+    case 'get_calendar_events': return 'Fetch Calendar';
+    case 'send_email': return 'Send Email';
+    case 'create_event': return 'Create Event';
+    default: return name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  }
 }
