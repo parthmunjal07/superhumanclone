@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { streamText, convertToModelMessages, stepCountIs, tool } from 'ai';
+import { streamText, convertToModelMessages, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 import { createMCPClient } from '@ai-sdk/mcp';
 import { mistral } from '@/lib/ai';
@@ -81,7 +81,7 @@ TOOL USAGE RULES:
       tools = {
         get_calendar_events: tool({
           description: "Fetch the user's Google Calendar events. Defaults to today if no date provided.",
-          parameters: z.object({
+          inputSchema: z.object({
             date: z
               .string()
               .optional()
@@ -108,13 +108,16 @@ TOOL USAGE RULES:
               return { summary: "No events found for this date." };
             }
 
-            // Return a slimmed down array of simplified objects so the LLM doesn't choke on huge Google API JSON payloads
-            return events.map((e: any) => ({
+            // Return a stringified payload wrapped in strict instructions to force conversational text
+            const slimEvents = events.map((e: any) => ({
               title: e.summary || e.title || 'Untitled',
               start: e.start?.dateTime || e.start?.date,
               end: e.end?.dateTime || e.end?.date,
               description: e.description ? "Has description" : "No description"
             }));
+
+            return `SYSTEM INSTRUCTION: The tool executed successfully. Here is the raw data: ${JSON.stringify(slimEvents)}. 
+            CRITICAL: You must now reply to the user in a friendly, conversational tone summarizing this data. DO NOT output raw JSON or code blocks.`;
           }
         })
       };
@@ -125,7 +128,7 @@ TOOL USAGE RULES:
       system: systemPrompt,
       messages: coreMessages,
       tools,
-      maxSteps: 5, 
+      stopWhen: isStepCount(5),
       
       onFinish: ({ text, usage }) => {
         console.log('✅ Stream finished — tokens:', usage?.totalTokens);
@@ -133,13 +136,14 @@ TOOL USAGE RULES:
       },
     });
 
+    // 🚨 FIX: Use the standard Vercel AI SDK UI message stream response
     return result.toUIMessageStreamResponse({
       onError: (error) => {
-        // This surfaces the REAL error text to the browser instead of "An error occurred"
         console.error('❌ Stream error:', error);
         return error instanceof Error ? error.message : String(error);
       },
     });
+    
   } catch (error) {
     console.error('API Agent route error:', error);
     return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500 });

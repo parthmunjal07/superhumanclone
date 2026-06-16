@@ -119,13 +119,7 @@ export function AgentChatUI({ onClose, isDocked = false }: { onClose?: () => voi
                   ))}
                 </div>
               )}
-              {(!m.parts && m.toolInvocations && m.toolInvocations.length > 0) && (
-                <div className="flex flex-col gap-2">
-                  {m.toolInvocations.map((tool, idx) => (
-                     <ToolActionChip key={tool.toolCallId || idx} tool={tool} />
-                  ))}
-                </div>
-              )}
+
 
               {/* Render Text Content (Natural Language) */}
               {m.parts ? m.parts.filter((p: any) => p.type === 'text').map((p: any, i: number) => (
@@ -205,7 +199,9 @@ export function AgentChatUI({ onClose, isDocked = false }: { onClose?: () => voi
 // Minimalist Tool Action Chip (Replaces JSON ActionLog)
 function ToolActionChip({ tool }: { tool: any }) {
   const isComplete = tool.state === 'result' || tool.state === 'output-available';
-  const actionName = formatActionName(tool.toolName);
+  // SAFTEY CHECK: Fallback to tool.name or a generic string if toolName is temporarily undefined during the stream
+  const rawName = tool.toolName || tool.name || 'Processing Tool';
+  const actionName = formatActionName(rawName);
 
   return (
     <div className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-zinc-50 border border-zinc-200/60 w-fit shadow-sm">
@@ -222,7 +218,10 @@ function ToolActionChip({ tool }: { tool: any }) {
 }
 
 // Helper to format raw tool names into human readable actions
-function formatActionName(name: string): string {
+function formatActionName(name?: string): string {
+  // SAFETY CHECK: If name is still somehow missing, return a safe fallback
+  if (!name) return 'Tool Execution';
+  
   switch (name) {
     case 'get_calendar_events': return 'Fetch Calendar';
     case 'send_email': return 'Send Email';
