@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import useSWR from 'swr';
 import { format } from 'date-fns';
 import { RefreshCcw, CheckCircle2, Clock, Calendar, MessageSquare, AlertCircle, PlayCircle, Loader2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 const fetcher = (url: string) => fetch(url).then(r => {
   if (!r.ok) throw new Error("Failed to fetch digest");
@@ -13,6 +14,8 @@ const fetcher = (url: string) => fetch(url).then(r => {
 export default function DigestPage() {
   const { data, error, isLoading, mutate } = useSWR('/api/digest', fetcher);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const { user } = useAuth();
+  const isDemoUser = user?.id === 'demo-user';
 
   const handleRegenerate = async () => {
     setIsRegenerating(true);
@@ -80,8 +83,9 @@ export default function DigestPage() {
           </div>
           <button 
             onClick={handleRegenerate}
-            disabled={isRegenerating}
-            className="flex items-center gap-2 px-5 py-2.5 bg-white border border-zinc-200 text-zinc-700 text-sm font-semibold rounded-full shadow-sm hover:bg-zinc-50 transition-colors disabled:opacity-50"
+            disabled={isRegenerating || isDemoUser}
+            title={isDemoUser ? "Refresh is disabled in Demo Mode" : ""}
+            className="flex items-center gap-2 px-5 py-2.5 bg-white border border-zinc-200 text-zinc-700 text-sm font-semibold rounded-full shadow-sm hover:bg-zinc-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isRegenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCcw className="w-3.5 h-3.5" />}
             {isRegenerating ? 'Generating...' : 'Refresh Digest'}

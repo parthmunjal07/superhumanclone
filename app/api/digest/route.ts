@@ -15,18 +15,27 @@ export async function GET(req: NextRequest) {
     const cacheKey = `user:${payload.userId}:digest:${today}`;
 
     if (payload.userId === 'demo-user') {
-      return NextResponse.json({
-        summary: "Good morning! You have 3 important updates today. There is an upcoming sync with Orbit, a successful deployment from Vercel, and an outreach from Alex Chen regarding a frontend role.",
+      const demoDigest = {
+        focusSuggestion: "Clear your blockers for the Q3 Roadmap and prepare for the Frontend Engineering interview.",
         actionItems: [
-          "Review the updated Q3 Product Roadmap from Elena.",
-          "Prepare for the Frontend Engineering interview with Alex Chen at 2 PM."
+          { type: "reply", text: "Review the updated Q3 Product Roadmap.", from: "Elena at Orbit" },
+          { type: "decide", text: "Approve the new UI mockups for the landing page.", from: "Design Team" },
+          { type: "delegate", text: "Investigate High CPU utilization on production.", from: "AWS Alerts" }
         ],
         meetings: [
-          { time: "10:00 AM", title: "Product Sync" },
-          { time: "2:00 PM", title: "Interview with Alex" }
+          { title: "Product Sync", time: "10:00 AM", attendees: ["Elena", "David", "You"], notes: ["Review roadmap timelines", "Address Q3 blockers"] },
+          { title: "Interview with Alex", time: "2:00 PM", attendees: ["Alex Chen", "You"], notes: ["Senior Frontend Engineer candidate", "Focus on React expertise"] }
         ],
-        focus: "Prioritize reviewing the roadmap and prepping for your interview."
-      });
+        waitingOn: [
+          { name: "Sarah Jenkins", sent: "Yesterday", text: "Awaiting final confirmation on project kickoff resources." },
+          { name: "Data Team", text: "Awaiting access to the new Metabase dashboards." }
+        ],
+        fyi: [
+          { title: "Deployment Successful", text: "Your latest production deployment for meridian-app is live." },
+          { title: "Flight Confirmation", text: "Your United Airlines flight to SFO is confirmed for 8:00 AM tomorrow." }
+        ]
+      };
+      return NextResponse.json(demoDigest);
     }
 
     // 1. Check Redis
@@ -69,18 +78,27 @@ export async function POST(req: NextRequest) {
     const today = new Date().toISOString().split('T')[0];
     
     if (payload.userId === 'demo-user') {
-      return NextResponse.json({
-        summary: "Good morning! You have 3 important updates today. There is an upcoming sync with Orbit, a successful deployment from Vercel, and an outreach from Alex Chen regarding a frontend role.",
+      const demoDigest = {
+        focusSuggestion: "Clear your blockers for the Q3 Roadmap and prepare for the Frontend Engineering interview.",
         actionItems: [
-          "Review the updated Q3 Product Roadmap from Elena.",
-          "Prepare for the Frontend Engineering interview with Alex Chen at 2 PM."
+          { type: "reply", text: "Review the updated Q3 Product Roadmap.", from: "Elena at Orbit" },
+          { type: "decide", text: "Approve the new UI mockups for the landing page.", from: "Design Team" },
+          { type: "delegate", text: "Investigate High CPU utilization on production.", from: "AWS Alerts" }
         ],
         meetings: [
-          { time: "10:00 AM", title: "Product Sync" },
-          { time: "2:00 PM", title: "Interview with Alex" }
+          { title: "Product Sync", time: "10:00 AM", attendees: ["Elena", "David", "You"], notes: ["Review roadmap timelines", "Address Q3 blockers"] },
+          { title: "Interview with Alex", time: "2:00 PM", attendees: ["Alex Chen", "You"], notes: ["Senior Frontend Engineer candidate", "Focus on React expertise"] }
         ],
-        focus: "Prioritize reviewing the roadmap and prepping for your interview."
-      });
+        waitingOn: [
+          { name: "Sarah Jenkins", sent: "Yesterday", text: "Awaiting final confirmation on project kickoff resources." },
+          { name: "Data Team", text: "Awaiting access to the new Metabase dashboards." }
+        ],
+        fyi: [
+          { title: "Deployment Successful", text: "Your latest production deployment for meridian-app is live." },
+          { title: "Flight Confirmation", text: "Your United Airlines flight to SFO is confirmed for 8:00 AM tomorrow." }
+        ]
+      };
+      return NextResponse.json(demoDigest);
     }
 
     const rateLimitKey = `ratelimit:digest:${payload.userId}:${today}`;

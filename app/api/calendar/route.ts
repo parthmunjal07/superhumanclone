@@ -31,6 +31,24 @@ export async function GET(req: Request) {
       const twoThirtyPM = new Date(today);
       twoThirtyPM.setHours(14, 30, 0, 0);
 
+      const elevenThirtyAM = new Date(today);
+      elevenThirtyAM.setHours(11, 30, 0, 0);
+      const twelveThirtyPM = new Date(today);
+      twelveThirtyPM.setHours(12, 30, 0, 0);
+
+      const onePM = new Date(today);
+      onePM.setHours(13, 0, 0, 0);
+      
+      const threeThirtyPM = new Date(today);
+      threeThirtyPM.setHours(15, 30, 0, 0);
+      const fourPM = new Date(today);
+      fourPM.setHours(16, 0, 0, 0);
+
+      const fivePM = new Date(today);
+      fivePM.setHours(17, 0, 0, 0);
+      const sixPM = new Date(today);
+      sixPM.setHours(18, 0, 0, 0);
+
       return NextResponse.json({
         events: [
           {
@@ -48,6 +66,42 @@ export async function GET(req: Request) {
             description: "Frontend role chat",
             start: twoPM.toISOString(),
             end: twoThirtyPM.toISOString(),
+            status: "confirmed",
+            htmlLink: "https://calendar.google.com"
+          },
+          {
+            id: 'mock-evt-3',
+            summary: "Design Review",
+            description: "Review latest mocks for landing page",
+            start: elevenThirtyAM.toISOString(),
+            end: twelveThirtyPM.toISOString(),
+            status: "confirmed",
+            htmlLink: "https://calendar.google.com"
+          },
+          {
+            id: 'mock-evt-4',
+            summary: "Lunch Break",
+            description: "Blocker",
+            start: onePM.toISOString(),
+            end: twoPM.toISOString(),
+            status: "confirmed",
+            htmlLink: "https://calendar.google.com"
+          },
+          {
+            id: 'mock-evt-5',
+            summary: "1:1 with Manager",
+            description: "Weekly sync",
+            start: threeThirtyPM.toISOString(),
+            end: fourPM.toISOString(),
+            status: "confirmed",
+            htmlLink: "https://calendar.google.com"
+          },
+          {
+            id: 'mock-evt-6',
+            summary: "Team All Hands",
+            description: "Monthly all hands meeting",
+            start: fivePM.toISOString(),
+            end: sixPM.toISOString(),
             status: "confirmed",
             htmlLink: "https://calendar.google.com"
           }
