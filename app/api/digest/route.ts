@@ -14,6 +14,21 @@ export async function GET(req: NextRequest) {
     const today = new Date().toISOString().split('T')[0];
     const cacheKey = `user:${payload.userId}:digest:${today}`;
 
+    if (payload.userId === 'demo-user') {
+      return NextResponse.json({
+        summary: "Good morning! You have 3 important updates today. There is an upcoming sync with Orbit, a successful deployment from Vercel, and an outreach from Alex Chen regarding a frontend role.",
+        actionItems: [
+          "Review the updated Q3 Product Roadmap from Elena.",
+          "Prepare for the Frontend Engineering interview with Alex Chen at 2 PM."
+        ],
+        meetings: [
+          { time: "10:00 AM", title: "Product Sync" },
+          { time: "2:00 PM", title: "Interview with Alex" }
+        ],
+        focus: "Prioritize reviewing the roadmap and prepping for your interview."
+      });
+    }
+
     // 1. Check Redis
     // const cached = await redis.get(cacheKey);
     // if (cached && cached !== "null") {
@@ -52,6 +67,22 @@ export async function POST(req: NextRequest) {
     if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const today = new Date().toISOString().split('T')[0];
+    
+    if (payload.userId === 'demo-user') {
+      return NextResponse.json({
+        summary: "Good morning! You have 3 important updates today. There is an upcoming sync with Orbit, a successful deployment from Vercel, and an outreach from Alex Chen regarding a frontend role.",
+        actionItems: [
+          "Review the updated Q3 Product Roadmap from Elena.",
+          "Prepare for the Frontend Engineering interview with Alex Chen at 2 PM."
+        ],
+        meetings: [
+          { time: "10:00 AM", title: "Product Sync" },
+          { time: "2:00 PM", title: "Interview with Alex" }
+        ],
+        focus: "Prioritize reviewing the roadmap and prepping for your interview."
+      });
+    }
+
     const rateLimitKey = `ratelimit:digest:${payload.userId}:${today}`;
     const requests = await redis.incr(rateLimitKey);
     if (requests === 1) {

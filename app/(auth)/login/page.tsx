@@ -95,6 +95,18 @@ function LoginForm() {
               </svg>
             ) : 'Sign In'}
           </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              document.cookie = 'corsair_refresh_token=demo-token; path=/; max-age=86400';
+              router.push('/inbox');
+              router.refresh();
+            }}
+            className="w-full flex justify-center items-center py-2.5 px-4 rounded-full shadow-sm text-[14px] font-semibold text-zinc-900 bg-zinc-100 border border-zinc-200 hover:bg-zinc-200 focus:outline-none transition-all mt-3"
+          >
+            Try Interactive Demo
+          </button>
         </form>
 
         <div className="relative pt-2">

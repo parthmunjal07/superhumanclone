@@ -19,6 +19,42 @@ export async function GET(req: Request) {
     const timeMax = searchParams.get('timeMax') || undefined;
     console.log('[/api/calendar] timeMin:', timeMin, 'timeMax:', timeMax);
 
+    if (payload.userId === 'demo-user') {
+      const today = new Date();
+      const tenAM = new Date(today);
+      tenAM.setHours(10, 0, 0, 0);
+      const elevenAM = new Date(today);
+      elevenAM.setHours(11, 0, 0, 0);
+      
+      const twoPM = new Date(today);
+      twoPM.setHours(14, 0, 0, 0);
+      const twoThirtyPM = new Date(today);
+      twoThirtyPM.setHours(14, 30, 0, 0);
+
+      return NextResponse.json({
+        events: [
+          {
+            id: 'mock-evt-1',
+            summary: "Product Sync",
+            description: "Sync on Q3 roadmap",
+            start: tenAM.toISOString(),
+            end: elevenAM.toISOString(),
+            status: "confirmed",
+            htmlLink: "https://calendar.google.com"
+          },
+          {
+            id: 'mock-evt-2',
+            summary: "Interview with Alex",
+            description: "Frontend role chat",
+            start: twoPM.toISOString(),
+            end: twoThirtyPM.toISOString(),
+            status: "confirmed",
+            htmlLink: "https://calendar.google.com"
+          }
+        ]
+      }, { status: 200 });
+    }
+
     const events = await CalendarService.getEvents(payload.userId, timeMin, timeMax);
     console.log('[/api/calendar] fetched events count:', events.length);
 

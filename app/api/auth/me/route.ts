@@ -15,6 +15,22 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Invalid or expired refresh token' }, { status: 401 });
     }
 
+    if (payload.userId === 'demo-user') {
+      return NextResponse.json({
+        user: {
+          id: 'demo-user',
+          email: 'demo@meridian.com',
+          name: 'Demo User',
+          authProvider: 'demo',
+          role: 'user',
+          teamId: null,
+          emailVerifiedAt: new Date().toISOString(),
+          gmailConnected: true
+        },
+        accessToken: 'demo-access-token'
+      });
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
       select: { 
