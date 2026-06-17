@@ -41,8 +41,8 @@ export async function DELETE(req: Request) {
 
     // Revoke the integration by clearing the account credentials
     try {
-      await tenant.gmail.keys.set_access_token(null);
-      await tenant.gmail.keys.set_refresh_token(null);
+      await (tenant.gmail as any).keys.set_access_token(null);
+      await (tenant.gmail as any).keys.set_refresh_token(null);
     } catch (err: any) {
       if (!err.message?.includes('Account not found')) {
         throw err;

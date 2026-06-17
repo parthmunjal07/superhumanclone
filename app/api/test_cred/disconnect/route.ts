@@ -6,8 +6,8 @@ export async function GET() {
     const tenantId = "cmqdzxyju000004jrnqii62zy";
     const tenant = await getCorsairClient(tenantId);
     
-    await tenant.gmail.keys.set_access_token(null);
-    await tenant.gmail.keys.set_refresh_token(null);
+    await (tenant.gmail as any).keys.set_access_token(null);
+    await (tenant.gmail as any).keys.set_refresh_token(null);
     
     return NextResponse.json({ success: true });
   } catch (error: any) {

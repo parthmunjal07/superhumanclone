@@ -17,16 +17,16 @@ export const corsair = createCorsair({
   plugins: [
     gmail({
       credentials: {
-        clientId: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        clientId: process.env.GOOGLE_CLIENT_ID!,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       }
-    }), 
+    } as any), 
     googlecalendar({
       credentials: {
-        clientId: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        clientId: process.env.GOOGLE_CLIENT_ID!,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       }
-    })
+    } as any)
   ],
   multiTenancy: true,
 });
