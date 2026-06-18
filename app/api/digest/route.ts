@@ -16,9 +16,9 @@ export const GET = requireRole([], async (req: NextRequest, { user }: { user: an
       const demoDigest = {
         focusSuggestion: "Clear your blockers for the Q3 Roadmap and prepare for the Frontend Engineering interview.",
         actionItems: [
-          { type: "reply", text: "Review the updated Q3 Product Roadmap.", from: "Elena at Orbit" },
-          { type: "decide", text: "Approve the new UI mockups for the landing page.", from: "Design Team" },
-          { type: "delegate", text: "Investigate High CPU utilization on production.", from: "AWS Alerts" }
+          { type: "reply", text: "Review the updated Q3 Product Roadmap.", from: "Elena at Orbit", targetEmail: "elena@orbit.com", targetSubject: "Re: Q3 Product Roadmap Sync" },
+          { type: "decide", text: "Approve the new UI mockups for the landing page.", from: "Design Team", targetEmail: "design@meridian.com", targetSubject: "Re: New UI mockups" },
+          { type: "delegate", text: "Investigate High CPU utilization on production.", from: "AWS Alerts", targetEmail: "devops@meridian.com", targetSubject: "Fwd: URGENT: High CPU utilization" }
         ],
         meetings: [
           { title: "Product Sync", time: "10:00 AM", attendees: ["Elena", "David", "You"], notes: ["Review roadmap timelines", "Address Q3 blockers"] },
@@ -76,9 +76,9 @@ export const POST = requireRole([], async (req: NextRequest, { user }: { user: a
       const demoDigest = {
         focusSuggestion: "Clear your blockers for the Q3 Roadmap and prepare for the Frontend Engineering interview.",
         actionItems: [
-          { type: "reply", text: "Review the updated Q3 Product Roadmap.", from: "Elena at Orbit" },
-          { type: "decide", text: "Approve the new UI mockups for the landing page.", from: "Design Team" },
-          { type: "delegate", text: "Investigate High CPU utilization on production.", from: "AWS Alerts" }
+          { type: "reply", text: "Review the updated Q3 Product Roadmap.", from: "Elena at Orbit", targetEmail: "elena@orbit.com", targetSubject: "Re: Q3 Product Roadmap Sync" },
+          { type: "decide", text: "Approve the new UI mockups for the landing page.", from: "Design Team", targetEmail: "design@meridian.com", targetSubject: "Re: New UI mockups" },
+          { type: "delegate", text: "Investigate High CPU utilization on production.", from: "AWS Alerts", targetEmail: "devops@meridian.com", targetSubject: "Fwd: URGENT: High CPU utilization" }
         ],
         meetings: [
           { title: "Product Sync", time: "10:00 AM", attendees: ["Elena", "David", "You"], notes: ["Review roadmap timelines", "Address Q3 blockers"] },

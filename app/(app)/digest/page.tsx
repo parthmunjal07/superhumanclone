@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import useSWR from 'swr';
 import { format } from 'date-fns';
+import { useRouter } from 'next/navigation';
 import { RefreshCcw, CheckCircle2, Clock, Calendar, MessageSquare, AlertCircle, PlayCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -16,6 +17,7 @@ export default function DigestPage() {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const { user } = useAuth();
   const isDemoUser = user?.id === 'demo-user';
+  const router = useRouter();
 
   const handleRegenerate = async () => {
     setIsRegenerating(true);
@@ -128,7 +130,15 @@ export default function DigestPage() {
                   if (item.type === 'delegate') badgeStyle = "bg-[#FFE2D1] text-[#85451C]";
 
                   return (
-                    <div key={idx} className="bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow group">
+                    <div 
+                      key={idx} 
+                      className={`bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all group ${item.targetEmail ? 'cursor-pointer hover:border-blue-300 hover:-translate-y-0.5' : ''}`}
+                      onClick={() => {
+                        if (item.targetEmail) {
+                          router.push(`/inbox?compose=true&to=${encodeURIComponent(item.targetEmail)}&subject=${encodeURIComponent(item.targetSubject || '')}`);
+                        }
+                      }}
+                    >
                       <div className="flex items-start justify-between gap-4 mb-2.5">
                         <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded-md ${badgeStyle}`}>
                           {item.type}

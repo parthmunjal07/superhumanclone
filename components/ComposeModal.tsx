@@ -147,27 +147,32 @@ export default function ComposeModal({ onClose, onSend, replyTo }: ComposeModalP
               </span>
             </div>
             
-            <div 
-              className="flex-1 bg-white border border-zinc-200 shadow-sm rounded-xl p-5 cursor-text overflow-y-auto flex flex-col"
-              onClick={(e) => {
-                if (e.target === e.currentTarget) {
-                  bodyRef.current?.focus();
-                }
-              }}
-            >
-              <input
-                id="compose-subject"
-                type="text"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="w-full bg-transparent text-zinc-900 text-[14px] font-bold focus:outline-none mb-4 placeholder:text-zinc-400"
-                placeholder="Subject"
-              />
-              <textarea
-                ref={bodyRef}
-                className="flex-1 outline-none text-zinc-800 text-[14px] bg-transparent resize-none placeholder:text-zinc-400 leading-relaxed"
-                placeholder="Write your message..."
-              />
+            <div className="flex flex-col gap-3 flex-1 min-h-0">
+              <div className="bg-white border border-zinc-200 shadow-sm rounded-xl px-5 py-3 shrink-0">
+                <input
+                  id="compose-subject"
+                  type="text"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  className="w-full bg-transparent text-zinc-900 text-[14px] font-bold focus:outline-none placeholder:text-zinc-400"
+                  placeholder="Subject"
+                />
+              </div>
+              
+              <div 
+                className="flex-1 bg-white border border-zinc-200 shadow-sm rounded-xl p-5 cursor-text overflow-y-auto flex flex-col"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
+                    bodyRef.current?.focus();
+                  }
+                }}
+              >
+                <textarea
+                  ref={bodyRef}
+                  className="flex-1 outline-none text-zinc-800 text-[14px] bg-transparent resize-none placeholder:text-zinc-400 leading-relaxed"
+                  placeholder="Write your message..."
+                />
+              </div>
             </div>
           </div>
         </div>

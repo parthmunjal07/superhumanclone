@@ -75,9 +75,9 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // 3. If user is on /onboarding and gmailConnected is true → allow through to /inbox
+  // 3. If user is on /onboarding and gmailConnected is true → allow through to /digest
   if (pathname === '/onboarding' && user.gmailConnected) {
-    return NextResponse.redirect(new URL('/inbox', req.url));
+    return NextResponse.redirect(new URL('/digest', req.url));
   }
 
   // Allow all other requests

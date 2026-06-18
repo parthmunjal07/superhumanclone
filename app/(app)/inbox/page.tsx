@@ -139,6 +139,23 @@ export default function InboxPage() {
     });
   };
 
+  // Handle compose query parameters
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('compose') === 'true') {
+      const to = params.get('to');
+      const subject = params.get('subject');
+      if (to) {
+        setReplyTo({ to, subject: subject || '' });
+        setIsComposeOpen(true);
+        
+        // Remove query parameters from URL without reloading
+        const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        window.history.replaceState({path: newUrl}, '', newUrl);
+      }
+    }
+  }, []);
+
   // Global keyboard shortcuts
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {

@@ -12,7 +12,7 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get('redirect') || '/inbox';
+  const redirect = searchParams.get('redirect') || '/digest';
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,7 +107,7 @@ function LoginForm() {
             type="button"
             onClick={async () => {
               await fetch('/api/auth/demo', { method: 'POST' });
-              window.location.href = '/inbox';
+              window.location.href = '/digest';
             }}
             className="w-full flex justify-center items-center py-2.5 px-4 rounded-full shadow-sm text-[14px] font-semibold text-zinc-900 bg-zinc-100 border border-zinc-200 hover:bg-zinc-200 focus:outline-none transition-all mt-3"
           >
