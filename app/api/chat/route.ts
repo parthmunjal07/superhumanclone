@@ -9,8 +9,12 @@ import { getRefreshTokenCookie, verifyToken } from '@/lib/auth';
 import { redis } from '@/lib/redis';
 import { CalendarService } from '@/services/calendar.service';
 import { EmailService } from '@/services/email.service';
+import { SendEmailSchema } from '@/schemas/email.schema';
+import { calendarEventSchema } from '@/schemas/calendar.schema';
 
-export async function POST(req: NextRequest) {
+import { requireRole } from '@/lib/rbac';
+
+export const POST = requireRole(['PRO', 'TEAM_MEMBER', 'TEAM_ADMIN'], async (req: NextRequest, { user }: { user: any }) => {
   try {
     const body = await req.json();
     const { messages } = body;
@@ -29,30 +33,18 @@ export async function POST(req: NextRequest) {
       return new Response(JSON.stringify({ error: 'Message conversion failed', detail: String(err) }), { status: 400 });
     }
 
-    // Try to get the current authenticated user
-    let user = null;
-    const token = await getRefreshTokenCookie();
-    if (token) {
-      const payload = verifyToken(token);
-      if (payload) {
-        user = await prisma.user.findUnique({ where: { id: payload.userId } });
-      }
-    }
-
-    if (!user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized: Sign in to use Meridian' }), { status: 401 });
-    }
+    // Use the `user` object injected by requireRole
 
     // Rate Limiting (5 AI calls per day)
-    // const today = new Date().toISOString().split('T')[0];
-    // const rateLimitKey = `ratelimit:ai:${user.id}:${today}`;
-    // const requests = await redis.incr(rateLimitKey);
-    // if (requests === 1) {
-    //   await redis.expire(rateLimitKey, 86400); // 24 hours
-    // }
-    // if (requests > 5) {
-    //   return new Response(JSON.stringify({ error: "You've reached your daily limit of 5 AI requests. Please upgrade or return tomorrow!" }), { status: 429 });
-    // }
+    const today = new Date().toISOString().split('T')[0];
+    const rateLimitKey = `ratelimit:ai:${user.id}:${today}`;
+    const requests = await redis.incr(rateLimitKey);
+    if (requests === 1) {
+      await redis.expire(rateLimitKey, 86400); // 24 hours
+    }
+    if (requests > 5) {
+      return new Response(JSON.stringify({ error: "You've reached your daily limit of 5 AI requests. Please upgrade or return tomorrow!" }), { status: 429 });
+    }
 
     // Prepare system prompt parameters
     const userName = user?.name || 'User';
@@ -129,11 +121,7 @@ TOOL USAGE RULES:
         }),
         send_email: tool({
           description: "Send an email on behalf of the user.",
-          inputSchema: z.object({
-            to: z.string().describe("The email address of the recipient"),
-            subject: z.string().describe("The subject of the email"),
-            body: z.string().describe("The plain text body of the email"),
-          }),
+          inputSchema: SendEmailSchema,
           execute: async ({ to, subject, body }) => {
             console.log(`[Agent Tool] Sending email to ${to}`);
             try {
@@ -146,12 +134,7 @@ TOOL USAGE RULES:
         }),
         create_event: tool({
           description: "Create a calendar event and automatically add a Google Meet link.",
-          inputSchema: z.object({
-            title: z.string().describe("Title of the event"),
-            start: z.string().describe("Start time as an ISO string (e.g., 2026-06-17T17:00:00.000Z)"),
-            end: z.string().describe("End time as an ISO string (e.g., 2026-06-17T18:00:00.000Z)"),
-            attendees: z.array(z.string()).optional().describe("List of attendee email addresses"),
-          }),
+          inputSchema: calendarEventSchema,
           execute: async ({ title, start, end, attendees }) => {
             console.log(`[Agent Tool] Creating event: ${title}`);
             try {
@@ -200,4 +183,4 @@ TOOL USAGE RULES:
     console.error('API Agent route error:', error);
     return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500 });
   }
-}
+});

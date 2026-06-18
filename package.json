@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
-    "tunnel": "ngrok http 3000"
+    "tunnel": "ngrok http 3000",
+    "find-dead-code": "ts-prune -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@ai-sdk/mcp": "^1.0.50",
@@ -56,6 +59,8 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/supertest": "^7.2.0",
+    "@vitest/ui": "^4.1.9",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "eslint-config-prettier": "^10.1.8",
@@ -63,7 +68,10 @@
     "ngrok": "^5.0.0-beta.2",
     "prettier": "^3.8.4",
     "prisma": "^7.8.0",
+    "supertest": "^7.2.2",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "ts-prune": "^0.10.3",
+    "typescript": "^5",
+    "vitest": "^4.1.9"
   }
 }

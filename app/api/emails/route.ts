@@ -1,10 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken, getRefreshTokenCookie } from '@/lib/auth';
+import { requireRole } from '@/lib/rbac';
 
 import { EmailService } from '@/services/email.service';
 
-export async function GET(req: Request) {
+export const GET = requireRole([], async (req: NextRequest, { user }: { user: any }) => {
   try {
     const url = new URL(req.url);
     const cursor = url.searchParams.get('cursor');
@@ -12,16 +13,7 @@ export async function GET(req: Request) {
     const limit = limitParam ? parseInt(limitParam, 10) : 20;
     const view = url.searchParams.get('view') || 'INBOX';
 
-    const refreshToken = await getRefreshTokenCookie();
-    if (!refreshToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const payload = verifyToken(refreshToken);
-    if (!payload) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userId = payload.userId;
+    const userId = user.id;
 
     if (userId === 'demo-user') {
       return NextResponse.json({
@@ -153,4 +145,4 @@ export async function GET(req: Request) {
     console.error('Error fetching emails:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}); 

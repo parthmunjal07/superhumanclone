@@ -3,18 +3,16 @@ import { getRefreshTokenCookie, verifyToken } from '@/lib/auth';
 import { redis } from '@/lib/redis';
 import { generateDigestForUser } from '@/lib/digest';
 import { prisma } from '@/lib/prisma';
+import { requireRole } from '@/lib/rbac';
 
-export async function GET(req: NextRequest) {
+export const GET = requireRole([], async (req: NextRequest, { user }: { user: any }) => {
   try {
-    const token = await getRefreshTokenCookie();
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    const payload = verifyToken(token);
-    if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const userId = user.id;
 
     const today = new Date().toISOString().split('T')[0];
-    const cacheKey = `user:${payload.userId}:digest:${today}`;
+    const cacheKey = `user:${userId}:digest:${today}`;
 
-    if (payload.userId === 'demo-user') {
+    if (userId === 'demo-user') {
       const demoDigest = {
         focusSuggestion: "Clear your blockers for the Q3 Roadmap and prepare for the Frontend Engineering interview.",
         actionItems: [
@@ -46,7 +44,7 @@ export async function GET(req: NextRequest) {
 
     // 2. Check Database
     const dbDigest = await prisma.digestCache.findFirst({
-      where: { userId: payload.userId },
+      where: { userId: userId },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -57,7 +55,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 3. Fallback: generate it right now
-    const digest = await generateDigestForUser(payload.userId);
+    const digest = await generateDigestForUser(userId);
     if (!digest) {
       return NextResponse.json({ error: 'Failed to generate digest' }, { status: 500 });
     }
@@ -66,18 +64,15 @@ export async function GET(req: NextRequest) {
     console.error('API /digest GET error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-}
+});
 
-export async function POST(req: NextRequest) {
+export const POST = requireRole([], async (req: NextRequest, { user }: { user: any }) => {
   try {
-    const token = await getRefreshTokenCookie();
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    const payload = verifyToken(token);
-    if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const userId = user.id;
 
     const today = new Date().toISOString().split('T')[0];
     
-    if (payload.userId === 'demo-user') {
+    if (userId === 'demo-user') {
       const demoDigest = {
         focusSuggestion: "Clear your blockers for the Q3 Roadmap and prepare for the Frontend Engineering interview.",
         actionItems: [
@@ -101,7 +96,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(demoDigest);
     }
 
-    const rateLimitKey = `ratelimit:digest:${payload.userId}:${today}`;
+    const rateLimitKey = `ratelimit:digest:${userId}:${today}`;
     const requests = await redis.incr(rateLimitKey);
     if (requests === 1) {
       await redis.expire(rateLimitKey, 86400);
@@ -111,10 +106,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Bust the cache and regenerate
-    const cacheKey = `user:${payload.userId}:digest:${today}`;
+    const cacheKey = `user:${userId}:digest:${today}`;
     await redis.del(cacheKey);
 
-    const digest = await generateDigestForUser(payload.userId);
+    const digest = await generateDigestForUser(userId);
     if (!digest) {
       return NextResponse.json({ error: 'Failed to regenerate digest' }, { status: 500 });
     }
@@ -124,4 +119,4 @@ export async function POST(req: NextRequest) {
     console.error('API /digest POST error:', error);
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
-}
+});

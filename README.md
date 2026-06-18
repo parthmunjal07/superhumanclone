@@ -1,138 +1,136 @@
-# Meridian ✦
+# Meridian: AI-First Email & Calendar Client
 
-**The fastest email and calendar experience ever made. Now with an agentic mind.**
+Meridian is a high-performance, intelligent email and calendar application built for speed and autonomy. It leverages agentic AI to help users triage emails, manage schedules, and synthesize daily tasks through a streamlined, neo-minimalist interface.
 
-[View the Live Demo](https://meridian.parthmunjal.in)
+## 🌟 Core Features
 
-Meridian is a premium, AI-first email client portfolio project built with a "Linear / Superhuman" neo-minimalist aesthetic. It transcends a simple email wrapper by integrating a fully autonomous AI agent that leverages the Model Context Protocol (MCP) to read context, draft emails, and schedule meetings on your behalf. 
+*   **Agentic AI Assistant:** A built-in chat interface (`AgentChatUI.tsx`) powered by the Vercel AI SDK (`lib/ai.ts`) that executes complex tasks using natural language.
+*   **Voice Commands:** Integrated voice input capabilities utilizing `useVoiceInput.ts` and visualized via the `Waveform.tsx` component.
+*   **Morning Digest:** An AI-generated daily briefing (`app/(app)/digest/page.tsx`) that synthesizes important emails, action items, and meetings, powered by background cron jobs (`app/api/cron/digest/route.ts`)[cite: 5].
+*   **Inbox Management:** A dedicated inbox interface (`app/(app)/inbox/page.tsx`) with features for reading (`ReadingPane.tsx`), composing (`ComposeModal.tsx`), archiving, and deleting emails[cite: 5].
+*   **Smart Calendar:** A fully integrated calendar (`app/(app)/calendar/page.tsx`) supporting event creation (`CreateEventModal.tsx`), free/busy tracking, and automated Google Meet link generation[cite: 5].
+*   **Corsair MCP Integration:** Deep integration with Corsair (`lib/corsair.ts`) to autonomously execute Gmail and Google Calendar API calls on behalf of the user[cite: 5].
+*   **Keyboard-Centric Navigation:** Designed for power users, featuring global keyboard shortcuts managed by `ShortcutOverlay.tsx`[cite: 5].
+*   **Demo Mode:** A frictionless authentication bypass (`app/api/auth/demo/route.ts`) allowing recruiters and visitors to experience the app without connecting real Google accounts[cite: 5].
 
----
+## 🛠 Tech Stack
 
-## 🚀 Features
+*   **Framework:** Next.js 14 (App Router)[cite: 5].
+*   **Language:** TypeScript (`tsconfig.json`, `.tsx`/`.ts` files throughout the project)[cite: 5].
+*   **Styling:** Tailwind CSS (`postcss.config.mjs`, `app/globals.css`)[cite: 5].
+*   **Database & ORM:** PostgreSQL managed via Prisma (`prisma/schema.prisma`, `lib/prisma.ts`)[cite: 5].
+*   **Caching & Rate Limiting:** Redis integration (`lib/redis.ts`)[cite: 5].
+*   **AI Integration:** Vercel AI SDK (`.agents/skills/ai-sdk/`, `lib/ai.ts`)[cite: 5].
+*   **Authentication:** Custom JWT authentication alongside Google OAuth (`lib/auth.ts`, `app/api/auth/`)[cite: 5].
+*   **Infrastructure:** Docker containerization (`docker-compose.yml`) and Vercel deployment configurations (`vercel.json`)[cite: 5].
 
-- **The Autonomous Agent**: A conversational interface powered by Mistral and the Vercel AI SDK. It doesn't just draft emails—it executes them.
-- **Corsair MCP Integration**: Seamlessly connects to your Google Workspace to fetch unread emails, send messages, and create calendar events (with Google Meet links automatically injected).
-- **The Morning Digest**: A daily AI-generated synthesis of what actually matters. We extract the signal from the noise before you even open your laptop.
-- **Keyboard-Centric Design**: Keep your hands on the keys. Navigate everything in milliseconds without touching a mouse.
-- **Neo-Minimalist UI**: High whitespace, strict monochrome palettes, soft diffused shadows, and subtle glassmorphism built entirely with pure Tailwind CSS.
-- **Rate Limiting & Security**: JWT-based authentication and Redis-backed rate limiting to protect API routes and AI usage quotas.
+## 📂 Application Architecture
 
----
+The repository is structured following Next.js App Router best practices, separated into distinct functional domains[cite: 5].
 
-## 🛠️ Tech Stack
+### Next.js App Router (`app/`)
+*   **`app/(app)/`**: Contains the core authenticated application views[cite: 5].
+    *   `agent/page.tsx`: The dedicated full-page AI agent interface[cite: 5].
+    *   `calendar/page.tsx`: The primary calendar view[cite: 5].
+    *   `digest/page.tsx`: The Morning Digest summary view[cite: 5].
+    *   `inbox/page.tsx`: The main email triage interface[cite: 5].
+    *   `settings/page.tsx`: User configuration and integration management[cite: 5].
+    *   `layout.tsx`: The standard application layout wrapper[cite: 5].
+*   **`app/(auth)/`**: Contains public-facing authentication routes[cite: 5].
+    *   `login/page.tsx`: User sign-in interface[cite: 5].
+    *   `register/page.tsx`: New user registration interface[cite: 5].
+*   **`app/onboarding/page.tsx`**: New user setup and integration flow[cite: 5].
+*   **`app/page.tsx`**: The main public landing page showcasing the product[cite: 5].
 
-### Frontend
-- **Framework**: [Next.js 14](https://nextjs.org/) (App Router)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **Icons**: [Lucide React](https://lucide.dev/)
-- **State Management**: React Hooks (`useState`, `useEffect`, `useRef`)
+### API Routes (`app/api/`)
+The application features an extensive REST API backend[cite: 5].
 
-### Backend & AI
-- **Database ORM**: [Prisma](https://www.prisma.io/)
-- **Database**: PostgreSQL
-- **AI Framework**: [Vercel AI SDK](https://sdk.vercel.ai/docs) (`streamText`, MCP Tooling)
-- **Model**: Mistral
-- **Integrations Engine**: [Corsair](https://corsair.dev) (Managing OAuth & Google Workspace APIs)
-- **Caching & Rate Limiting**: [Redis](https://redis.io/)
+*   **Authentication APIs (`app/api/auth/`)**[cite: 5]:
+    *   `/connect/calendar/route.ts`: Initializes Google Calendar integration[cite: 5].
+    *   `/connect/gmail/route.ts`: Initializes Gmail integration[cite: 5].
+    *   `/corsair/callback/route.ts`: Handles Corsair OAuth callbacks[cite: 5].
+    *   `/demo/route.ts`: Manages Demo Mode sessions[cite: 5].
+    *   `/google/route.ts` & `/google/callback/route.ts`: Native Google authentication[cite: 5].
+    *   `/login/route.ts` & `/register/route.ts`: Standard user authentication[cite: 5].
+    *   `/verify/route.ts` & `/resend-verification/route.ts`: Email verification logic[cite: 5].
+*   **Calendar APIs (`app/api/calendar/`)**[cite: 5]:
+    *   `/events/route.ts`: Fetching and creating calendar events[cite: 5].
+    *   `/freebusy/route.ts`: Checking availability[cite: 5].
+*   **Email APIs (`app/api/emails/`)**[cite: 5]:
+    *   `/[id]/archive/route.ts`: Archiving specific emails[cite: 5].
+    *   `/[id]/delete/route.ts`: Trashing specific emails[cite: 5].
+    *   `/[id]/smart-chips/route.ts`: Generating contextual smart chips for messages[cite: 5].
+    *   `/[id]/decision-log/route.ts`: Tracking AI decisions on specific emails[cite: 5].
+    *   `/search/route.ts`: Searching the inbox[cite: 5].
+    *   `/send/route.ts`: Dispatching outgoing emails[cite: 5].
+*   **AI & System APIs**[cite: 5]:
+    *   `app/api/chat/route.ts`: The primary Vercel AI SDK streaming endpoint[cite: 5].
+    *   `app/api/digest/route.ts`: Fetching or regenerating the Morning Digest[cite: 5].
+    *   `app/api/cron/digest/route.ts`: Background job for preemptive digest generation[cite: 5].
+    *   `app/api/sse/route.ts`: Server-Sent Events for real-time UI updates[cite: 5].
+    *   `app/api/webhooks/`: Webhook receivers for Corsair and incoming emails[cite: 5].
 
----
+### UI Components (`components/`)
+A modular library of React components tailored for a premium user experience[cite: 5].
 
-## 📁 Folder Structure
+*   **Agent Interaction**: `AgentChatUI.tsx`, `AgentDockWrapper.tsx`, `Waveform.tsx`[cite: 5].
+*   **Email Handling**: `EmailItem.tsx`, `ComposeModal.tsx`, `ReadingPane.tsx`[cite: 5].
+*   **Calendar Handling**: `CalendarSidebar.tsx`, `CreateEventModal.tsx`, `EventModal.tsx`[cite: 5].
+*   **Navigation & Layout**: `Sidebar.tsx`, `ShortcutOverlay.tsx`[cite: 5].
+*   **Security & Settings**: `ProtectedRoute.tsx`, `DisconnectButton.tsx`[cite: 5].
+*   **Base UI**: Contains primitive components such as `ui/button.tsx` configured by `components.json`[cite: 5].
 
-```text
-meridian/
-├── app/                      # Next.js App Router root
-│   ├── (app)/                # Authenticated routes (Inbox, Calendar, Agent)
-│   ├── api/                  # API endpoints
-│   │   ├── auth/             # JWT Authentication & Corsair OAuth callbacks
-│   │   ├── chat/             # Vercel AI SDK streaming endpoint
-│   │   ├── cron/             # Background jobs (Morning Digest)
-│   │   └── ...
-│   ├── layout.tsx            # Global HTML wrapper & Metadata
-│   └── page.tsx              # Long-form Landing Page
-├── components/               # Reusable React components
-│   ├── AgentChatUI.tsx       # The core Agent chat interface
-│   ├── AgentDockWrapper.tsx  # Floating agent dock
-│   └── ...
-├── lib/                      # Core utilities and SDK initializations
-│   ├── ai.ts                 # AI model setup
-│   ├── corsair.ts            # Corsair client and plugin configurations
-│   ├── prisma.ts             # Prisma client singleton
-│   ├── redis.ts              # Redis client for rate limiting
-│   └── digest.ts             # Logic for generating the Morning Digest
-├── services/                 # Business logic abstractions
-│   ├── calendar.service.ts   # Google Calendar API wrappers (via Corsair)
-│   └── email.service.ts      # Gmail API wrappers (via Corsair)
-├── prisma/                   # Database schema and migrations
-│   └── schema.prisma         # User models and connection states
-└── ...
-```
+### Services (`services/`)
+Encapsulated business logic abstraction layers[cite: 5].
+*   `calendar.service.ts`: Handles Google Calendar API formatting, Meet links, and attendees[cite: 5].
+*   `email.service.ts`: Handles Gmail fetching, sanitization, and sending logic[cite: 5].
+*   `EventDetectionService.ts`: Analyzes text/emails to automatically detect schedulable events[cite: 5].
 
----
+### Libraries & Core Utilities (`lib/`)
+*   `ai.ts`: Model configurations and prompt sanitization[cite: 5].
+*   `auth.ts`: JWT signing, verification, and cookie management[cite: 5].
+*   `corsair.ts`: Corsair MCP client instantiation[cite: 5].
+*   `digest.ts`: Logic for synthesizing user data into the Morning Digest JSON format[cite: 5].
+*   `prisma.ts`: Prisma database client singleton[cite: 5].
+*   `redis.ts`: Redis connection and caching functions[cite: 5].
+*   `rbac.ts` & `permissions.ts`: Role-Based Access Control and capability limits[cite: 5].
+*   `utils.ts`: Generic helpers and Tailwind class mergers (`cn`)[cite: 5].
 
-## 🧠 How the Agent Works (MCP)
+### Data Validation (`schemas/`)
+*   `calendar.schema.ts`: Zod schemas for calendar event inputs[cite: 5].
+*   `email.schema.ts`: Zod schemas for email validation[cite: 5].
 
-Meridian's AI is built on the **Model Context Protocol (MCP)**. Instead of relying on rigid, pre-programmed flows, the Vercel AI SDK is provided with a suite of strictly typed `zod` tools (e.g., `send_email`, `create_event`, `get_calendar_events`).
+## 🔐 Security & Access Control
+*   **Role-Based Limitations:** The platform distinguishes between Free and Pro tiers, managed through `lib/rbac.ts` and `lib/permissions.ts`[cite: 5].
+*   **Auth Gates:** Protected routes enforce authentication at the component level (`components/ProtectedRoute.tsx`) and the API level[cite: 5].
+*   **Token Management:** Credentials and connection states can be actively revoked via `test-disconnect.ts` and `app/api/test_cred/disconnect/route.ts`[cite: 5].
 
-When you ask the agent to "Cancel my 3pm meeting and let Sarah know," the AI:
-1. Calls `get_calendar_events` to find the 3 PM meeting ID.
-2. Calls `delete_event` using that ID.
-3. Calls `send_email` to Sarah with a contextual apology.
-4. Synthesizes the results of all tool calls and replies to you in natural language.
+## 🧪 Testing & Scripts
+The repository includes several scratchpads and scripts for testing integrations without hitting the frontend[cite: 5].
+*   **Database Seeding:** `scripts/seed.ts` populates initial test data[cite: 5].
+*   **OAuth Testing:** `scratch_fetch_oauth.ts`, `scratch_test_oauth.ts`, and `scratch_test_oauth_https.js` validate Google/Corsair handshake flows[cite: 5].
+*   **Instance & MCP Testing:** `test-creds.mjs`, `test-fetch.mjs`, `test-instance.mjs`, and `test-mcp.mjs` verify model context protocol connections[cite: 5].
 
----
+## 🚀 Setup & Installation
 
-## 🏃‍♂️ Getting Started Locally
+**1. Clone the repository**
+Install dependencies utilizing the package manager (`package.json`, `package-lock.json`)[cite: 5].
 
-### Prerequisites
-- Node.js 18+
-- PostgreSQL database
-- Redis instance
-- Corsair Account / Self-Hosted Engine
-- Google Cloud Console Project (for OAuth Client ID/Secret)
+**2. Environment Configuration**
+Configure necessary environment variables for Next.js, Postgres, Redis, Google OAuth, and Corsair[cite: 5].
 
-### Installation
+**3. Infrastructure Setup**
+Start required local services (like Redis/Postgres) using the provided Docker configuration[cite: 5]:
+```bash
+docker-compose up -d
+4. Database Migration
+Initialize the database schemas defined in prisma/schema.prisma[cite: 5].
+Bash
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/yourusername/meridian.git
-   cd meridian
-   ```
+npx prisma db push
+npx prisma generate
 
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+5. Start the Development Server
+Bash
 
-3. **Set up Environment Variables:**
-   Create a `.env` file in the root and add the required keys:
-   ```env
-   DATABASE_URL="postgresql://..."
-   JWT_SECRET="your_jwt_secret"
-   MISTRAL_API_KEY="your_mistral_key"
-   REDIS_URL="redis://..."
-   
-   # Corsair & Google OAuth
-   NEXT_PUBLIC_APP_URL="http://localhost:3000"
-   GOOGLE_CLIENT_ID="..."
-   GOOGLE_CLIENT_SECRET="..."
-   CORSAIR_KEK="..."
-   ```
-
-4. **Initialize the Database:**
-   ```bash
-   npx prisma generate
-   npx prisma db push
-   ```
-
-5. **Run the Server:**
-   ```bash
-   npm run dev
-   ```
-   *The app will be available at [http://localhost:3000](http://localhost:3000).*
-
----
-
-## 📜 License
-
-This project is licensed under the MIT License.
+npm run dev
