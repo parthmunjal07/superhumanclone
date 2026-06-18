@@ -47,13 +47,24 @@ export async function POST(req: Request) {
     // Send Email via Resend
     const verifyLink = `${appUrl}/api/auth/verify?token=${token}`;
     
+    // Always log the link to the terminal so you can copy-paste it if the email fails
+    console.log('\n=== VERIFICATION LINK ===');
+    console.log(verifyLink);
+    console.log('=========================\n');
+    
     if (process.env.RESEND_API_KEY) {
-      await resend.emails.send({
-        from: 'noreply@corsair.dev', // Ensure you configure this domain in Resend
+      const { data, error } = await resend.emails.send({
+        from: 'noreply@meridian.parthmunjal.in', // Resend's default testing email
         to: email,
         subject: 'Verify your email address',
         html: `<p>Please verify your email by clicking the link below:</p><p><a href="${verifyLink}">${verifyLink}</a></p>`,
       });
+
+      if (error) {
+        console.error('Resend failed to send email:', error);
+      } else {
+        console.log('Email sent successfully via Resend:', data);
+      }
     } else {
       console.log('Mock email sent (no RESEND_API_KEY):', verifyLink);
     }

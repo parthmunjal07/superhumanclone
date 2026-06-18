@@ -25,7 +25,14 @@ export default function Register() {
         body: JSON.stringify({ name, email, password }),
       });
 
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.error("Non-JSON response from server:", text);
+        throw new Error(text.length > 50 ? text.substring(0, 50) + "..." : text || "Server returned an invalid response.");
+      }
 
       if (!res.ok) {
         throw new Error(data.error || 'Something went wrong');
