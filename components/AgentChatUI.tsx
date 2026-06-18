@@ -10,6 +10,8 @@ import {
 import { Waveform } from '@/components/Waveform';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useAuth } from '@/hooks/useAuth';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export function AgentChatUI({ onClose, isDocked = false, isAuthenticated = false }: { onClose?: () => void, isDocked?: boolean, isAuthenticated?: boolean }) {
   // 1. Auth Hook
@@ -156,14 +158,55 @@ export function AgentChatUI({ onClose, isDocked = false, isAuthenticated = false
 
               {/* Render Text Content (Natural Language) */}
               {m.parts ? m.parts.filter((p: any) => p.type === 'text').map((p: any, i: number) => (
-                <div key={i} className="text-[14px] leading-[1.6] tracking-tight text-zinc-800 whitespace-pre-wrap break-words">
+                <ReactMarkdown
+                  key={i}
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    p: ({node, ...props}) => <p className="text-[14px] leading-[1.6] tracking-tight text-zinc-800 mb-3 last:mb-0" {...props} />,
+                    strong: ({node, ...props}) => <strong className="font-semibold text-zinc-900" {...props} />,
+                    ul: ({node, ...props}) => <ul className="ml-4 mb-3 space-y-1 list-disc text-[14px] leading-[1.6] tracking-tight text-zinc-800" {...props} />,
+                    ol: ({node, ...props}) => <ol className="ml-4 mb-3 space-y-1 list-decimal text-[14px] leading-[1.6] tracking-tight text-zinc-800" {...props} />,
+                    li: ({node, ...props}) => <li className="text-[14px] leading-[1.6] tracking-tight text-zinc-800" {...props} />,
+                    code: ({node, inline, className, children, ...props}: any) => {
+                      if (inline) {
+                        return <code className="bg-zinc-100 text-zinc-900 px-1.5 py-0.5 rounded-md font-mono text-[12px] border border-zinc-200/50" {...props}>{children}</code>;
+                      }
+                      return <code className={className} {...props}>{children}</code>;
+                    },
+                    pre: ({node, ...props}) => <pre className="bg-zinc-950 text-zinc-50 p-4 rounded-xl overflow-x-auto my-4 text-[13px] font-mono leading-relaxed shadow-sm" {...props} />,
+                    h1: ({node, ...props}) => <h1 className="font-semibold text-zinc-900 tracking-tight mt-5 mb-2 text-lg" {...props} />,
+                    h2: ({node, ...props}) => <h2 className="font-semibold text-zinc-900 tracking-tight mt-5 mb-2 text-base" {...props} />,
+                    h3: ({node, ...props}) => <h3 className="font-semibold text-zinc-900 tracking-tight mt-5 mb-2 text-[15px]" {...props} />,
+                    a: ({node, ...props}) => <a className="text-zinc-900 underline decoration-zinc-300 underline-offset-2 hover:decoration-zinc-900 transition-colors" {...props} />,
+                  }}
+                >
                   {p.text}
-                </div>
+                </ReactMarkdown>
               )) : (
                 (m as any).content && (m as any).content.length > 0 && (
-                  <div className="text-[14px] leading-[1.6] tracking-tight text-zinc-800 whitespace-pre-wrap break-words">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      p: ({node, ...props}) => <p className="text-[14px] leading-[1.6] tracking-tight text-zinc-800 mb-3 last:mb-0" {...props} />,
+                      strong: ({node, ...props}) => <strong className="font-semibold text-zinc-900" {...props} />,
+                      ul: ({node, ...props}) => <ul className="ml-4 mb-3 space-y-1 list-disc text-[14px] leading-[1.6] tracking-tight text-zinc-800" {...props} />,
+                      ol: ({node, ...props}) => <ol className="ml-4 mb-3 space-y-1 list-decimal text-[14px] leading-[1.6] tracking-tight text-zinc-800" {...props} />,
+                      li: ({node, ...props}) => <li className="text-[14px] leading-[1.6] tracking-tight text-zinc-800" {...props} />,
+                      code: ({node, inline, className, children, ...props}: any) => {
+                        if (inline) {
+                          return <code className="bg-zinc-100 text-zinc-900 px-1.5 py-0.5 rounded-md font-mono text-[12px] border border-zinc-200/50" {...props}>{children}</code>;
+                        }
+                        return <code className={className} {...props}>{children}</code>;
+                      },
+                      pre: ({node, ...props}) => <pre className="bg-zinc-950 text-zinc-50 p-4 rounded-xl overflow-x-auto my-4 text-[13px] font-mono leading-relaxed shadow-sm" {...props} />,
+                      h1: ({node, ...props}) => <h1 className="font-semibold text-zinc-900 tracking-tight mt-5 mb-2 text-lg" {...props} />,
+                      h2: ({node, ...props}) => <h2 className="font-semibold text-zinc-900 tracking-tight mt-5 mb-2 text-base" {...props} />,
+                      h3: ({node, ...props}) => <h3 className="font-semibold text-zinc-900 tracking-tight mt-5 mb-2 text-[15px]" {...props} />,
+                      a: ({node, ...props}) => <a className="text-zinc-900 underline decoration-zinc-300 underline-offset-2 hover:decoration-zinc-900 transition-colors" {...props} />,
+                    }}
+                  >
                     {(m as any).content}
-                  </div>
+                  </ReactMarkdown>
                 )
               )}
 
