@@ -38,6 +38,7 @@ export const GET = requireRole([], async (req: NextRequest, { user }: { user: an
             start: setTime(10),
             end: setTime(11),
             status: "confirmed",
+            colorId: "1",
             htmlLink: "https://calendar.google.com"
           },
           {
@@ -47,6 +48,7 @@ export const GET = requireRole([], async (req: NextRequest, { user }: { user: an
             start: setTime(11, 30),
             end: setTime(12, 30),
             status: "confirmed",
+            colorId: "3",
             htmlLink: "https://calendar.google.com"
           },
           {
@@ -56,6 +58,7 @@ export const GET = requireRole([], async (req: NextRequest, { user }: { user: an
             start: setTime(13),
             end: setTime(14),
             status: "confirmed",
+            colorId: "8",
             htmlLink: "https://calendar.google.com"
           },
           {
@@ -65,6 +68,7 @@ export const GET = requireRole([], async (req: NextRequest, { user }: { user: an
             start: setTime(14),
             end: setTime(14, 30),
             status: "confirmed",
+            colorId: "2",
             htmlLink: "https://calendar.google.com"
           },
           {
@@ -74,6 +78,7 @@ export const GET = requireRole([], async (req: NextRequest, { user }: { user: an
             start: setTime(15, 30),
             end: setTime(16),
             status: "confirmed",
+            colorId: "5",
             htmlLink: "https://calendar.google.com"
           },
           {
@@ -83,6 +88,7 @@ export const GET = requireRole([], async (req: NextRequest, { user }: { user: an
             start: setTime(17),
             end: setTime(18),
             status: "confirmed",
+            colorId: "4",
             htmlLink: "https://calendar.google.com"
           }
         ];
@@ -107,6 +113,7 @@ export const GET = requireRole([], async (req: NextRequest, { user }: { user: an
             start: setTime(10),
             end: setTime(12),
             status: "confirmed",
+            colorId: "9",
             htmlLink: "https://calendar.google.com"
           });
         }
