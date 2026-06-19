@@ -97,17 +97,25 @@ export const POST = requireRole([], async (req: NextRequest, { user }: { user: a
     }
 
     const rateLimitKey = `ratelimit:digest:${userId}:${today}`;
-    const requests = await redis.incr(rateLimitKey);
-    if (requests === 1) {
-      await redis.expire(rateLimitKey, 86400);
-    }
-    if (requests > 1) {
-      return NextResponse.json({ error: "You've reached your daily limit of 1 AI digest. Please upgrade or return tomorrow!" }, { status: 429 });
+    try {
+      const requests = await redis.incr(rateLimitKey);
+      if (requests === 1) {
+        await redis.expire(rateLimitKey, 86400);
+      }
+      if (requests > 1) {
+        return NextResponse.json({ error: "You've reached your daily limit of 1 AI digest. Please upgrade or return tomorrow!" }, { status: 429 });
+      }
+    } catch (redisError) {
+      console.warn('Redis rate limiting skipped due to error:', redisError);
     }
 
     // Bust the cache and regenerate
     const cacheKey = `user:${userId}:digest:${today}`;
-    await redis.del(cacheKey);
+    try {
+      await redis.del(cacheKey);
+    } catch (redisError) {
+      console.warn('Redis cache bust skipped due to error:', redisError);
+    }
 
     const digest = await generateDigestForUser(userId);
     if (!digest) {

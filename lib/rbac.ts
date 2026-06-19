@@ -27,7 +27,7 @@ export function requireRole(allowedRoles: (Role | string)[], handler: Function) 
 
     // 2. Gate access (Return 403 if they don't have access)
     // If allowedRoles is empty, we just enforce authentication
-    if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
+    if (allowedRoles.length > 0 && !allowedRoles.includes(userRole) && userRole !== 'SUPER_ADMIN') {
       return NextResponse.json(
         { error: 'Forbidden: You do not have the required role to perform this action.' }, 
         { status: 403 }

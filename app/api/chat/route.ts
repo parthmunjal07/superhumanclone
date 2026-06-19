@@ -38,12 +38,16 @@ export const POST = requireRole(['PRO', 'TEAM_MEMBER', 'TEAM_ADMIN'], async (req
     // Rate Limiting (5 AI calls per day)
     const today = new Date().toISOString().split('T')[0];
     const rateLimitKey = `ratelimit:ai:${user.id}:${today}`;
-    const requests = await redis.incr(rateLimitKey);
-    if (requests === 1) {
-      await redis.expire(rateLimitKey, 86400); // 24 hours
-    }
-    if (requests > 5) {
-      return new Response(JSON.stringify({ error: "You've reached your daily limit of 5 AI requests. Please upgrade or return tomorrow!" }), { status: 429 });
+    try {
+      const requests = await redis.incr(rateLimitKey);
+      if (requests === 1) {
+        await redis.expire(rateLimitKey, 86400); // 24 hours
+      }
+      if (requests > 5) {
+        return new Response(JSON.stringify({ error: "You've reached your daily limit of 5 AI requests. Please upgrade or return tomorrow!" }), { status: 429 });
+      }
+    } catch (redisError) {
+      console.warn('Redis rate limiting skipped due to error:', redisError);
     }
 
     // Prepare system prompt parameters
