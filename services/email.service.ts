@@ -19,17 +19,19 @@ export class EmailService {
     
     try {
       const listData = await t.gmail.api.messages.list({
-        maxResults: 50, // Strictly enforce max 50 for free users
-        pageToken: undefined, // Do not allow pagination beyond the first page
-        // Optional: pre-filter by view here using Gmail query syntax, e.g. q: 'in:inbox'
-        // For simplicity we will filter locally or via q param
+        maxResults: limit || 20, 
+        pageToken: cursor || undefined, 
         q: view === 'SENT' ? 'in:sent' : view === 'SPAM' ? 'in:spam' : view === 'ARCHIVED' ? '-in:inbox -in:trash -in:spam' : 'in:inbox'
       });
 
       const msgIds = listData.messages || [];
       const liveMsgs = await Promise.all(
         msgIds.map(async (m: any) => {
-          return await t.gmail.api.messages.get({ id: m.id }).catch(() => null);
+          return await t.gmail.api.messages.get({ 
+            id: m.id,
+            format: 'metadata',
+            metadataHeaders: ['Subject', 'From', 'To', 'Date']
+          }).catch(() => null);
         })
       );
 
@@ -52,7 +54,7 @@ export class EmailService {
 
       return { 
         emails: messages, 
-        nextCursor: null // Force no next page for free users
+        nextCursor: listData.nextPageToken || null 
       };
     } catch (err: any) {
       console.error("[EmailService] Failed to fetch emails from Corsair:", err.message);
@@ -140,7 +142,11 @@ export class EmailService {
       const msgIds = listData.messages;
       const liveMsgs = await Promise.all(
         msgIds.map(async (m: any) => {
-          return await t.gmail.api.messages.get({ id: m.id }).catch(() => null);
+          return await t.gmail.api.messages.get({ 
+            id: m.id,
+            format: 'metadata',
+            metadataHeaders: ['Subject', 'From', 'To', 'Date']
+          }).catch(() => null);
         })
       );
 
