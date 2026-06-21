@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { redis } from '@/lib/redis';
 import { redirect } from 'next/navigation';
 import { DisconnectButton } from '@/components/DisconnectButton';
-import { Settings, Mail, Calendar as CalendarIcon, CheckCircle2, Sparkles } from 'lucide-react';
+import { Settings, Mail, Calendar as CalendarIcon, CheckCircle2, Sparkles, Slack, Globe, ListTodo } from 'lucide-react';
 
 export default async function SettingsPage() {
   const refreshToken = await getRefreshTokenCookie();
@@ -129,6 +129,77 @@ export default async function SettingsPage() {
                 )}
               </div>
             </div>
+            </div>
+
+            {/* Slack Integration (Coming Soon) */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl border border-zinc-100 bg-zinc-50 hover:bg-white transition-colors opacity-60 grayscale-[0.5]">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-[#E8E1ED] border border-[#D6CBE0] flex items-center justify-center shrink-0">
+                  <Slack className="w-6 h-6 text-[#4A154B]" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-zinc-900 flex items-center gap-3">
+                    Slack
+                    <span className="text-[11px] font-bold uppercase tracking-wider bg-zinc-200 text-zinc-600 px-3 py-1 rounded-full border border-zinc-300">
+                      Coming Soon
+                    </span>
+                  </h3>
+                  <p className="text-sm text-zinc-500 mt-1">Connect your workspace and let the AI manage your messages.</p>
+                </div>
+              </div>
+              <div className="shrink-0 mt-4 sm:mt-0">
+                <button disabled className="inline-flex items-center justify-center px-6 py-2.5 bg-zinc-200 text-zinc-500 text-[15px] font-semibold rounded-full cursor-not-allowed">
+                  Connect
+                </button>
+              </div>
+            </div>
+
+            {/* Linear Integration (Coming Soon) */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl border border-zinc-100 bg-zinc-50 hover:bg-white transition-colors opacity-60 grayscale-[0.5]">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-[#EAEAF2] border border-[#D5D5E8] flex items-center justify-center shrink-0">
+                  <ListTodo className="w-6 h-6 text-[#5E6AD2]" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-zinc-900 flex items-center gap-3">
+                    Linear
+                    <span className="text-[11px] font-bold uppercase tracking-wider bg-zinc-200 text-zinc-600 px-3 py-1 rounded-full border border-zinc-300">
+                      Coming Soon
+                    </span>
+                  </h3>
+                  <p className="text-sm text-zinc-500 mt-1">Manage issues, projects, and cycles seamlessly from Meridian.</p>
+                </div>
+              </div>
+              <div className="shrink-0 mt-4 sm:mt-0">
+                <button disabled className="inline-flex items-center justify-center px-6 py-2.5 bg-zinc-200 text-zinc-500 text-[15px] font-semibold rounded-full cursor-not-allowed">
+                  Connect
+                </button>
+              </div>
+            </div>
+
+            {/* Tavily Integration (Coming Soon) */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl border border-zinc-100 bg-zinc-50 hover:bg-white transition-colors opacity-60 grayscale-[0.5]">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-[#E0F2FE] border border-[#BAE6FD] flex items-center justify-center shrink-0">
+                  <Globe className="w-6 h-6 text-[#0284C7]" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-zinc-900 flex items-center gap-3">
+                    Tavily Search
+                    <span className="text-[11px] font-bold uppercase tracking-wider bg-zinc-200 text-zinc-600 px-3 py-1 rounded-full border border-zinc-300">
+                      Coming Soon
+                    </span>
+                  </h3>
+                  <p className="text-sm text-zinc-500 mt-1">Supercharge your AI assistant with real-time web search capabilities.</p>
+                </div>
+              </div>
+              <div className="shrink-0 mt-4 sm:mt-0">
+                <button disabled className="inline-flex items-center justify-center px-6 py-2.5 bg-zinc-200 text-zinc-500 text-[15px] font-semibold rounded-full cursor-not-allowed">
+                  Connect
+                </button>
+              </div>
+            </div>
+
           </div>
         </section>
 
