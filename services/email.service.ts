@@ -29,7 +29,8 @@ export class EmailService {
         msgIds.map(async (m: any) => {
           return await t.gmail.api.messages.get({ 
             id: m.id,
-            format: 'metadata'
+            format: 'metadata',
+            metadataHeaders: ['From', 'To', 'Subject', 'Date']
           }).catch((err: any) => {
             console.error("Error fetching msg:", err.message);
             return null;
@@ -146,7 +147,8 @@ export class EmailService {
         msgIds.map(async (m: any) => {
           return await t.gmail.api.messages.get({ 
             id: m.id,
-            format: 'metadata'
+            format: 'metadata',
+            metadataHeaders: ['From', 'To', 'Subject', 'Date']
           }).catch((err: any) => {
             console.error("Error fetching msg:", err.message);
             return null;
