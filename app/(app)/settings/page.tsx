@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { redis } from '@/lib/redis';
 import { redirect } from 'next/navigation';
 import { DisconnectButton } from '@/components/DisconnectButton';
-import { Settings, Mail, Calendar as CalendarIcon, CheckCircle2, Sparkles, Slack, Globe, ListTodo } from 'lucide-react';
+import { Settings, Mail, Calendar as CalendarIcon, CheckCircle2, Sparkles, Hash, Globe, ListTodo } from 'lucide-react';
 
 export default async function SettingsPage() {
   const refreshToken = await getRefreshTokenCookie();
@@ -129,13 +129,12 @@ export default async function SettingsPage() {
                 )}
               </div>
             </div>
-            </div>
 
             {/* Slack Integration (Coming Soon) */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl border border-zinc-100 bg-zinc-50 hover:bg-white transition-colors opacity-60 grayscale-[0.5]">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-[#E8E1ED] border border-[#D6CBE0] flex items-center justify-center shrink-0">
-                  <Slack className="w-6 h-6 text-[#4A154B]" />
+                  <Hash className="w-6 h-6 text-[#4A154B]" />
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-zinc-900 flex items-center gap-3">
